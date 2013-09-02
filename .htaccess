@@ -1,3 +1,12 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+RewriteRule ^/wp/css/(.*) css/$1
+RewriteRule ^/wp/img/(.*) img/$1
+RewriteRule ^/wp/js/(.*) js/$1
+RewriteRule ^/wp/font/(.*) font/$1
+RewriteRule ^/wp/plugins/(.*) plugins/$1
+</IfModule>
 
 # BEGIN WordPress
 <IfModule mod_rewrite.c>
@@ -6,10 +15,5 @@ RewriteBase /
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.php [L]
-RewriteRule ^/wp/css/(.*) css/$1 [QSA]
-RewriteRule ^/wp/img/(.*) img/$1 [QSA]
-RewriteRule ^/wp/js/(.*) js/$1 [QSA]
-RewriteRule ^/wp/font/(.*) font/$1 [QSA]
-RewriteRule ^/wp/plugins/(.*) plugins/$1 [QSA]
 </IfModule>
 # END WordPress
