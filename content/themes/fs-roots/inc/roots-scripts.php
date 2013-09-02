@@ -12,9 +12,6 @@ function roots_scripts() {
 
   $base = get_template_directory_uri();
 
-
-  echo get_template_directory_uri();
-
   wp_register_script('roots_plugins', $base . '/js/plugins.js', false, null, false);
   wp_register_script('roots_script', $base . '/js/script.js', false, null, false);
   wp_enqueue_script('roots_plugins');
