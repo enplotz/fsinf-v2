@@ -13,8 +13,11 @@ function roots_scripts() {
   if (is_multisite() || is_child_theme()) {
     $base = get_template_directory_uri();
   } else {
-    $base = '';
+    # TODO remove this hack
+    $base = '/content/themes/fs-roots/';
   }
+
+  echo get_template_directory_uri();
 
   wp_register_script('roots_plugins', $base . '/js/plugins.js', false, null, false);
   wp_register_script('roots_script', $base . '/js/script.js', false, null, false);

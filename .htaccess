@@ -1,13 +1,3 @@
-<IfModule mod_rewrite.c>
-RewriteEngine On
-RewriteBase /
-RewriteRule ^/wp/css/(.*) css/$1
-RewriteRule ^/wp/img/(.*) img/$1
-RewriteRule ^/wp/js/(.*) js/$1
-RewriteRule ^/wp/font/(.*) font/$1
-RewriteRule ^/wp/plugins/(.*) plugins/$1
-</IfModule>
-
 # BEGIN WordPress
 <IfModule mod_rewrite.c>
 RewriteEngine On
