@@ -10,12 +10,8 @@ function roots_scripts() {
     wp_enqueue_script('comment-reply');
   }
 
-  if (is_multisite() || is_child_theme()) {
-    $base = get_template_directory_uri();
-  } else {
-    # TODO remove this hack
-    $base = '/content/themes/fs-roots/';
-  }
+  $base = get_template_directory_uri();
+
 
   echo get_template_directory_uri();
 
