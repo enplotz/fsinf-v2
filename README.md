@@ -13,3 +13,34 @@ The structure and code are adapted from [Wordpress-Skeleton][wpskel].
 
 [wpskel]: https://github.com/markjaquith/WordPress-Skeleton
 [wpstack]: https://github.com/markjaquith/WP-Stack
+
+## Wordpress Versioning
+
+To bump the version of Wordpress to a specific version,
+you have to reset the `/wp/` submodule to the commit containing the version.
+You can do this as follows:
+
+To pull all branch information from origin:
+
+	git fetch
+
+If the version has a tag:
+
+	git checkout versionNumber-branch
+	git reset --hard tag-name
+
+If the version has no tag:
+
+	git checkout versionNumber-branch
+	git reset --hard commit_hash_that_contains_your_version
+
+Then stage the changes of the `wp` submodule and commit them.
+
+## Deployment
+
+	sudo su deploy
+	# or
+	su deploy
+
+	cd ~/deploy
+	cap deploy production
