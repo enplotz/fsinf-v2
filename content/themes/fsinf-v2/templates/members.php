@@ -57,7 +57,7 @@ function change_avatar_css($class) {
 ?>
     <div class="row">
     <div class="col-lg-12">
-        <div class="media">
+        <div class="media media-profile">
         <?php
     // Get link to author page
     $user_link = get_author_posts_url($member->ID);
