@@ -32,9 +32,8 @@ class umValidationRule {
     
     function __construct( $rule, $value, $options=array() ) {
         $this->rule     = $rule;
-        $this->value    = trim( $value );
-        
-        $this->options = $options;
+        $this->value    = is_string( $value ) ? trim( $value ) : $value;
+        $this->options  = $options;
     }
     
     private function setRegex() {        
@@ -56,9 +55,9 @@ class umValidationRule {
         global $userMeta;
         
 		$messages = Array(
-            'required'  => __( '%s is required', $userMeta->name ),
-            'email'     => __( 'Invalid email address', $userMeta->name ),
-            'equals'    => __( '%s do not match', $userMeta->name ),
+            'required'  => $userMeta->getMsg('validate_required', '%s'),
+            'email'     => $userMeta->getMsg('validate_email'),
+            'equals'    => $userMeta->getMsg('validate_equals', '%s'),
             'unique'    => sprintf( __( '%1$s: "%2$s" already taken', $userMeta->name ), '%s', $this->value ),
 		); 
         
@@ -82,8 +81,15 @@ class umValidationRule {
         else {
             $this->setRegex();
             if ( ! empty( $this->regex ) ) {
-                if ( preg_match( $this->regex, $this->value ) )
-                    $isValid = true;
+                if( is_array( $this->value ) ){
+                    foreach( $this->value as $val ){
+                        if ( preg_match( $this->regex, $val ) )
+                            $isValid = true;
+                    }
+                }else{
+                    if ( preg_match( $this->regex, $this->value ) )
+                        $isValid = true;
+                }
             }else
                 $isValid = true;
         }
@@ -128,6 +134,29 @@ class umValidationRule {
             return $userMeta->isUserFieldAvailable( $this->options['field_name'], $this->value, $userID );
         
         return false;
+    }
+    
+    private function validate_current_password() {
+        global $userMeta;
+        
+        $fieldName = $this->options['field_name'] . '_current';
+        if( !empty( $this->value ) && empty( $_REQUEST[$fieldName] ) ){
+            $this->message = $userMeta->getMsg('validate_current_required', '%s');
+            return false;
+        }
+        
+        $userID = isset( $this->options['user_id'] ) ? $this->options['user_id'] : 0;
+        $user = new WP_User( $userID );
+        
+        if( !empty($user->user_login) ){
+            $user = wp_authenticate( $user->user_login, esc_attr( $_REQUEST[$fieldName] ) );
+            if(is_wp_error( $user ) ){
+                $this->message = $userMeta->getMsg('validate_current_password');
+                return false;
+            }     
+        }
+        
+        return true;
     }
     
 }

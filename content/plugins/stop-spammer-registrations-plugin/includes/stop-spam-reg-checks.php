@@ -15,8 +15,11 @@ if (!defined('ABSPATH')) exit; // just in case
 *************************************************************/
 function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 	// use test@test.com to test if the system is working
-    global $sfs_check_activation;
-    $sname=$_SERVER["REQUEST_URI"];	
+	//sfs_debug_msg("starting");
+	global $kpg_check_sempahore;
+	if ($kpg_check_sempahore);
+	global $sfs_check_activation;
+	$sname=$_SERVER["REQUEST_URI"];	
 	if (empty($sname)) {
 		$sname=$_SERVER["SCRIPT_NAME"];	
 	}
@@ -24,7 +27,10 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		$sname=' none? ';
 	}
 	$em=$email;
-
+	$content='';
+	if (array_key_exists('comment',$_POST)) {
+		$content=$_POST['comment'];
+	}
 	// even though there may be problems with the wp-cron code - don't check it
 	// some crons jobs use email or user id to update something.
 	// it may be a hacker, but cron always fails the speed test.
@@ -41,8 +47,8 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 	if ($ip==$_SERVER['SERVER_ADDR']) {
 		$chkip='N'; // don't check yourself. - just check the non ip stuff.
 	}
-    // if the check for admin
-	if ($chkadmin=='Y'&&strpos($sname,'wp-login.php')!==false&&function_exists('wp_authenticate')) {
+	// if the check for admin
+	if (!class_exists('GoogleAuthenticator')&&$chkadmin=='Y'&&strpos($sname,'wp-login.php')!==false&&function_exists('wp_authenticate')) {
 		if (array_key_exists('log',$_POST)&&array_key_exists('pwd',$_POST)) {
 			$log=$_POST['log'];
 			$pwd=$_POST['pwd'];
@@ -51,26 +57,22 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 				// check to see if the user is good.
 				// check roles
 				$caps=$user->caps; 
-				//echo "<!--\r\n\r\n";
-				//	print_r($user);
-				//echo "\r\n\r\n-->";
 				
 				if (!empty($caps) && array_key_exists('administrator',$caps)) {
-					//echo "<!--\r\n\r\n user is admin \r\n\r\n-->";
 					if ($logfilesize>0) kpg_append_file('.history_log.txt',"$now:$ip,$em,$author,$sname,Admin Login\r\n");
 					return; // the user is good - let them in
 				}
 			}
 		}
 	}
-
+    // always check wp-login.php?action=register
 	if ($email!=$sfs_check_activation && $email!='test@test.com' ) {
-// from a user who wanted to exclude some of the checking.	
+		// from a user who wanted to exclude some of the checking.	
 		if ($chkcomments!='Y') {
 			if (strpos($sname,'wp-comments-post.php')!==false) return $email;
 		}
 		if ($chklogin!='Y') {
-			if (strpos($sname,'wp-login.php')!==false) return $email;
+			if (strpos($sname,'wp-login.php')!==false && strpos($sname,'action=register')===false) return $email;
 		}
 		if ($chksignup!='Y') {
 			if (strpos($sname,'wp-signup.php')!==false) return $email;
@@ -78,20 +80,34 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		if ($chkxmlrpc!='Y') {
 			if (strpos($sname,'xmlrpc.php')!==false) return $email;
 		}
-    }
+	}
 	
+	//sfs_debug_msg("continue 1");
 	
 	// clean up cache and history	
 	while (count($badips)>$kpg_sp_cache) array_shift($badips);
-	while (count($badems)>$kpg_sp_cache_em) array_shift($badems);
 	while (count($goodips)>$kpg_sp_good) array_shift($goodips);
+	// timeout goodips - don't keep for more than an hour
+	$nowtimeout=date('Y/m/d H:i:s',time()-3600 + ( get_option( 'gmt_offset' ) * 3600 ));
+	// goodips last an hour.
+	foreach($goodips as $key=>$data) {
+		if ($data<$nowtimeout) {
+			unset($goodips[$key]);
+		}
+	}
+	// bad ips last 4 hours
+	$nowtimeout=date('Y/m/d H:i:s',time()-(4*3600) + ( get_option( 'gmt_offset' ) * 3600 ));
+	foreach($badips as $key=>$data) {
+		if ($data<$nowtimeout) {
+			unset($badips[$key]);
+		}
+	}
 	//$goodips=array(); // limiting good ips to just a few
 	while (count($hist)>$kpg_sp_hist) array_shift($hist);
 	$stats['badips']=$badips;
-	$stats['badems']=$badems;
 	$stats['goodips']=$goodips;
 	$stats['hist']=$hist;
-    $sname=$_SERVER["REQUEST_URI"];	
+	$sname=$_SERVER["REQUEST_URI"];	
 	if (empty($sname)) {
 		$sname=$_SERVER["SCRIPT_NAME"];	
 	}
@@ -132,7 +148,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 	if (strlen($pwd)>32) $pwd=substr($pwd,0,30).'...';
 	if (strlen($em)>80) $em=substr($em,0,80).'...';
 	// set up hist channel
-	$hist[$now]=array($ip,mysql_real_escape_string($em),mysql_real_escape_string($author),$sname,'',$blog);
+	$hist[$now]=array($ip,$em,$author,$sname,'',$blog);
 	
 	// check all of the ones that do not require file access
 	$deny=false;
@@ -140,7 +156,16 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 	// move this down past the white lists after testing is done
 	
 	// first check white lists 
-
+	//sfs_debug_msg("continue 2");
+	// white list vaultpress backups
+	/*
+	from vaultpress site:
+		From Address	To Address
+		207.198.112.1	207.198.112.254
+		207.198.113.1	207.198.113.254	
+	*/
+	if (substr($ip,0,12)=='207.198.112.'||substr($ip,0,12)=='207.198.113.') return $email;
+	
 	// paypal is whitelisted
 	if ($email!=$sfs_check_activation && $email!='test@test.com') {
 		if (!$deny&& $chkip=='Y'&&kpg_sp_checkPayPal($ip)){
@@ -170,17 +195,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			if ($logfilesize>0) kpg_append_file('.history_log.txt',"$now:$ip,$em,$author,$sname,White List EMAIL\r\n");
 			return $email;
 		}
-	// check to see if the ip is in the goodips cache
-	
-		if (!$deny&& $chkip=='Y'&&kpg_sp_search_ip($ip,$goodips)) {
-			$hist[$now][4]='Cached good ip';
-			$stats['hist']=$hist;
-			$cntgood++;
-			$stats['cntgood']=$cntgood;
-			update_option('kpg_stop_sp_reg_stats',$stats);
-			if ($logfilesize>0) kpg_append_file('.history_log.txt',"$now:$ip,$em,$author,$sname,Cached good ip\r\n");
-			return $email;
-		}
+		
 	}
 	/***********************************************************************************
 	
@@ -205,6 +220,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		$whodunnit.='test email';
 	}
 
+	//sfs_debug_msg("continue 3");
 	
 	// begin by checking the caches for bad ips. Do this before the regular checks
 	// this way only the first appearance of a bad actor is recorded by type
@@ -215,7 +231,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		$cntcacheip++;
 	} 
 	if (!$deny && $chkip=='Y') {
-	    if (kpg_sp_searchi_ip($ip,$blist)) {
+		if (kpg_sp_searchi_ip($ip,$blist)) {
 			$whodunnit.='Black List IP';
 			$deny=true;
 			$cntblip++;
@@ -225,18 +241,19 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 	if (!$deny&&$chkubiquity=='Y'&& $chkip=='Y') {
 		$ansa=kpg_check_ubiquity($ip);
 		if ($ansa!==false) {
-				$deny=true;
-				$whodunnit.=$ansa;
-				$cntubiquity++;
+			$deny=true;
+			$whodunnit.=$ansa;
+			$cntubiquity++;
 		}
 	}
 	// check to see if the user is admin
-	if (!$deny && $chkadminlog=='Y' && array_key_exists('log',$_POST) && $_POST['log']=='admin') {
+	$log="";
+	if (array_key_exists('log',$_POST)) $log=$_POST['log'];
+	if (!$deny && $chkadminlog=='Y' && array_key_exists('log',$_POST) && strtolower($log)=='admin') {
 		//hit on the admin login
-		$log=$_POST['log'];
-		if (get_user_by( 'login','admin')===false) {
+		if (get_user_by( 'login',$log)===false) {
 			// hit on admin but no admin
-			$whodunnit.="Attack on userid 'admin'";
+			$whodunnit.="Attack on userid '$log'";
 			$deny=true;
 			$cntadminlog++;
 		} else {
@@ -246,6 +263,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		// testing that the admin check is working.
 		//$hist[$now][4]=' $chkadminlog '.$_POST['log'];
 	}
+	//sfs_debug_msg("continue 4");
 	
 	// check to see if we are timing out
 	if (!$deny && $chksession!='N' && $sesstime>0) {
@@ -257,14 +275,14 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			// modify this so only login is excluded. If we are this far then we need to
 			// check the POST
 			//if (strpos($sname,'wp-comments-post.php')!==false
-				// can't include login.php because in firefox its filled in and I just press the button.
-				//||strpos($sname,'wp-login.php')!==false
+			// can't include login.php because in firefox its filled in and I just press the button.
+			//||strpos($sname,'wp-login.php')!==false
 			//	||strpos($sname,'signup.php')!==false
 			//) 
 			if (strpos($sname,'wp-login.php')===false) { 
-				if (isset($_SESSION['kpg_stop_spammers_time'])) {
-					$stime=$_SESSION['kpg_stop_spammers_time'];
-					$tm=time()-$stime;
+				if (isset($_COOKIE['kpg_stop_spammers_time'])) {
+					$stime=$_COOKIE['kpg_stop_spammers_time'];
+					$tm=strtotime("now")-$stime;
 					if ($tm>0&&$tm<=$sesstime) { // zero seconds is wrong, too. it means that session was set somewhere.
 						// takes longer than 4 seconds to really type a comment
 						$whodunnit.="Too Quick ($tm)";
@@ -283,34 +301,28 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 	if (!$deny&&array_key_exists('akismet_comment_nonce',$_POST)) {
 		$nonce=$_POST['akismet_comment_nonce'];
 		if (!empty($nonce)&&kpg_verify_nonce($nonce,'kpgstopspam_redherring')) { 
-				$whodunnit.='Red Herring';
-				$deny=true;
-				$cntrh++;
+			$whodunnit.='Red Herring';
+			$deny=true;
+			$cntrh++;
 		}
 	}
+	//sfs_debug_msg("continue 5");
+	
 	if (!$deny&&array_key_exists('rememberme',$_POST)) {
 		$nonce=$_POST['rememberme'];
 		if (!empty($nonce)&&kpg_verify_nonce($nonce,'kpgstopspam_redherring')) { 
-				$whodunnit.='Red Herring';
-				$deny=true;
-				$cntrh++;
+			$whodunnit.='Red Herring';
+			$deny=true;
+			$cntrh++;
 		}
 	}
+	//sfs_debug_msg("continue 6");
 	if (!$deny&&!empty($_GET)&&array_key_exists('redir',$_GET)) {
 		$nonce=$_GET['redir'];
 		if (!empty($nonce)&&kpg_verify_nonce($nonce,'kpgstopspam_redherring')) { 
-				$whodunnit.='Red Herring';
-				$deny=true;
-				$cntrh++;
-		}
-	}
-	// chkjscript
-	if (!$deny&&array_key_exists('kpg_jscript',$_POST)) {
-		$nonce=$_POST['kpg_jscript'];
-		if (!empty($nonce)&&kpg_verify_nonce($nonce,'kpgstopspam_javascript_bad')) { 
-				$whodunnit.='JavaScript Trap';
-				$cntjscript++;
-				$deny=true;
+			$whodunnit.='Red Herring';
+			$deny=true;
+			$cntrh++;
 		}
 	}
 	$ref='';
@@ -332,11 +344,15 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			// require the referer
 			// check to see if our domain is found in the referer
 			$host=$_SERVER['HTTP_HOST'];
-			if (empty($ref)||strpos($ref,$host)===false) {
-				// bad referer
-				$whodunnit.="http referer";
-				$deny=true;
-				$cntreferer++;
+			if (!empty($ref)&&!empty($host)) { 
+				// some servers have an empty host for some reason
+				// some servers and links from https to http and back don't send a referer
+				if (strpos(strtolower($ref),strtolower($host))===false) {
+					// bad referer
+					$whodunnit.="http referer";
+					$deny=true;
+					$cntreferer++;
+				}
 			}
 		}
 	}
@@ -355,7 +371,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			}
 		}
 	}
-			
+	
 	if (!$deny && !empty($badTLDs)) {
 		// check the ending to see if the tld should be banned
 		// get the tld
@@ -373,7 +389,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 
 	// These are the simple email checks
 	if (!empty($em)) {
-		if ($em=='dukang2004@yahoo.com') {
+		if ($em=='dukang2004@yahoo.com') { // repeat bad customer
 			$whodunnit.='dukang2004 jerk';
 			$deny=true;
 			$cntblem++;
@@ -391,17 +407,12 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 				$cntemdom++;
 			}
 		}
-		if (!$deny && array_key_exists($em,$badems)) {
-			$deny=true;
-			$whodunnit.='Cached bad email';
-			$cntcacheem++;
-		} 
 		if (!$deny && $chklong=='Y' && strlen($em)>64) {
 			$deny=true;
 			$whodunnit.='email too long';
 			$cntlong++;
 		}
-		if (!$deny && $chklong=='Y' && strlen($em)<7) {
+		if (!$deny && $chklong=='Y' && strlen($em)<5) {
 			$deny=true;
 			$whodunnit.='email too short';
 			$cntlong++;
@@ -423,13 +434,23 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			}
 		}
 	}
+	//sfs_debug_msg("continue 6");
+	// check the comment content for spamwords
+	if (!$deny && $chkspamwords=='Y' && !empty($content)) {
+		$ansa=kpg_check_spamwords($content,$spamwords);
+		if ($ansa!==false) {
+			$deny=true;
+			$whodunnit.='Comment Spamwords:'.$ansa;
+			$cntspamwords++;
+		}
+	} 
 	// check the author field
-    // getting a lot of huge author names
+	// getting a lot of huge author names
 	if (!empty($author)) {
 		if (!$deny && $chklong=='Y' && strlen($author)>64) {
-				$whodunnit.='long author name '.strlen($author);
-				$deny=true;
-				$cntlongauth++;
+			$whodunnit.='long author name '.strlen($author);
+			$deny=true;
+			$cntlongauth++;
 		}
 		if (!$deny && $chkspamwords=='Y') {
 			$ansa=kpg_check_spamwords($author,$spamwords);
@@ -440,31 +461,6 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			}
 		}
 	}
-	// check two common types of accept headers - not reliable. Take out when confirmed
-	$accept_head=false; 
-	if (array_key_exists('HTTP_ACCEPT_ENCODING',$_SERVER)) $accept_head=true; // real browsers send HTTP_ACCEPT
-	if (!$deny&&$accept=='Y'&&!$accept_head) {
-		//$whodunnit.='No Accept ENCODING header;';
-		//$deny=true;
-		//$cntaccept++;
-	}
-	$accept_head=false; 
-	if (array_key_exists('HTTP_ACCEPT_LANGUAGE',$_SERVER)) $accept_head=true; // real browsers send HTTP_ACCEPT
-	if (!$deny&&$accept=='Y'&&!$accept_head) {
-		//$whodunnit.='No Accept LANGUAGE header;';
-		//$deny=true;
-		//$cntaccept++;
-	}
-	// accept *.*
-	$accept_head=false; 
-	if (array_key_exists('HTTP_ACCEPT',$_SERVER) && $_SERVER['HTTP_ACCEPT']=='*.*') $accept_head=true; 
-	// real browsers don't sent *.* as only accept.
-	if (!$deny&&$accept=='Y'&&!$accept_head) {
-		//$whodunnit.='ACCEPT *.*;';
-		//$deny=true;
-		//$cntaccept++;
-	}
-	// accept header
 	$accept_head=false; 
 	if (array_key_exists('HTTP_ACCEPT',$_SERVER)) $accept_head=true; // real browsers send HTTP_ACCEPT
 	if (!$deny&&$accept=='Y'&&!$accept_head) {
@@ -473,33 +469,52 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		$deny=true;
 		$cntaccept++;
 	}
-	
-	
-	
-	// try akismet
-	if (!$deny&& $chkip=='Y'&&$chkakismet=='Y'&&(strpos($sname,'login.php')!==false||strpos($sname,'register.php')!==false||strpos($sname,'signup.php')!==false)) { 
-		$ansa=kpg_akismet_check($ip);
-		if ($ansa!==false) {
-				$deny=true;
-				$whodunnit.='Akismet';
-				$cntakismet++;
-		}
+
+	// check here for good bad cache - move this down because spammers reuse the ip and we might just catch them
+	if (!$deny&& $chkip=='Y'&&kpg_sp_search_ip($ip,$goodips)) {
+		$hist[$now][4]='Cached good ip';
+		$stats['hist']=$hist;
+		$cntgood++;
+		$stats['cntgood']=$cntgood;
+		update_option('kpg_stop_sp_reg_stats',$stats);
+		if ($logfilesize>0) kpg_append_file('.history_log.txt',"$now:$ip,$em,$author,$sname,Cached good ip\r\n");
+		return $email;
 	}
 
+	
+	//sfs_debug_msg("continue 7");
+	
+	// try akismet
+	// turn off akismet for the nonce
+	$chkakismet='N';
+	if (!$deny&& $chkip=='Y'&&$chkakismet=='Y' && ipChkk() &&(strpos($sname,'login.php')!==false||strpos($sname,'register.php')!==false||strpos($sname,'signup.php')!==false)) { 
+		$ansa=kpg_akismet_check($ip);
+		if ($ansa!==false) {
+			$deny=true;
+			$whodunnit.='Akismet';
+			$cntakismet++;
+		}
+	}
+    $chkakismetcomments='N';
 	if (!$deny&& $chkip=='Y'&&$chkakismetcomments=='Y'&&(strpos($sname,'login.php')===false&&strpos($sname,'register.php')===false&&strpos($sname,'signup.php')===false)) { 
 		$ansa=kpg_akismet_check($ip);
 		if ($ansa!==false) {
-				$deny=true;
-				$whodunnit.='Akismet';
-				$cntakismet++;
+			$deny=true;
+			$whodunnit.='Akismet';
+			$cntakismet++;
 		}
 	}
+
 	// here is the database lookups section. Simple checks did not work. We need to do a lookup
-	if (!$deny && $chksfs=='Y' && $chkip=='Y' ) { 
+	//sfs_debug_msg("continue 8");
+	if (!$deny && $chksfs=='Y' && $chkip=='Y' && ipChkk() ) { 
 		$query="http://www.stopforumspam.com/api?ip=$ip";
+		// no longer checking email on sfs
+		/*
 		if ($chkemail=='Y'&&!empty($em)) {
 			$query=$query."&email=$em";
 		}
+		*/
 		$check='';
 		$check=kpg_sfs_reg_getafile($query);
 		if (!empty($check)) {
@@ -510,7 +525,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			$frequency='';
 			$n=strpos($check,'<appears>yes</appears>');
 			if ($n!==false) {
-			    if (strpos($check,'<lastseen>',$n)!==false) {
+				if (strpos($check,'<lastseen>',$n)!==false) {
 					$k=strpos($check,'<lastseen>',$n);
 					$k+=10;
 					$j=strpos($check,'</lastseen>',$k);
@@ -529,9 +544,9 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 				// have freqency and lastseen date - make these options in next release
 				// check freq and age
 				if (!empty($frequency) && !empty($lastseen) && ($frequency!=255) && ($frequency>=$sfsfreq) && (strtotime($lastseen)>(time()-(60*60*24*$sfsage))) )   { 
-				//if ( ($frequency>=$sfsfreq) && (strtotime($lastseen)>(time()-(60*60*24*$sfsage))) )   { 
-				// frequency we got from the db, sfsfreq is the min we'll accept (default 0)
-				// sfsage is the age in days. we get lastscene from
+					//if ( ($frequency>=$sfsfreq) && (strtotime($lastseen)>(time()-(60*60*24*$sfsage))) )   { 
+					// frequency we got from the db, sfsfreq is the min we'll accept (default 0)
+					// sfsage is the age in days. we get lastscene from
 					$deny=true;
 					$whodunnit.="SFS, $lastseen, $frequency";
 					$cntsfs++;
@@ -541,16 +556,18 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		//$whodunnit.="Passed SFS, $query $check";
 	} 
 	
-	if (!$deny&&$chkdnsbl=='Y'&& $chkip=='Y') {
+	//sfs_debug_msg("continue 9");
+
+	if (!$deny&&$chkdnsbl=='Y'&& $chkip=='Y' && ipChkk() ) {
 		$ansa=@kpg_check_all_dnsbl($ip);
 		if ($ansa!==false) {
-				$deny=true;
-				$whodunnit.=$ansa;
-				$cntdnsbl++;
+			$deny=true;
+			$whodunnit.=$ansa;
+			$cntdnsbl++;
 		}
 	}
-
-	if (!$deny&&$honeyapi!=''&& $chkip=='Y') {
+	//sfs_debug_msg("continue 10");
+	if (!$deny&&$honeyapi!=''&& $chkip=='Y' && ipChkk() ) {
 		$ansa=kpg_dnsbl_data($ip,'.dnsbl.httpbl.org',$honeyapi);
 		if ($ansa!==false) {
 			$deny=true;
@@ -558,9 +575,10 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			$cnthp++;
 		}
 	}
-	if (!$deny&&$botscoutapi!=''&& $chkip=='Y') {
+	//sfs_debug_msg("continue 11");
+	if (!$deny&&$botscoutapi!=''&& $chkip=='Y' && ipChkk() ) {
 		// try the ip on botscoutapi
-	    $query="http://botscout.com/test/?ip=$ip&key=$botscoutapi";
+		$query="http://botscout.com/test/?ip=$ip&key=$botscoutapi";
 		$check='';
 		$check=@kpg_sfs_reg_getafile($query);
 		if (!empty($check)) {
@@ -580,17 +598,39 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 			}
 		}
 	}
+	if (!$deny&&$chktor=='Y'&& $chkip=='Y' ) {
+		$ansa=@kpg_check_tor($ip);
+		if ($ansa!==false) {
+			$deny=true;
+			$whodunnit.="Tor";
+			$cnttor++;
+		}
+	}
+    // one last check
+	$xip=kpg_get_ip();
+	if (!$deny&&$xip!=$ip) {
+			$deny=true;
+			$whodunnit.=" Spoofed IP";
+			$cntspoof++;
+	}
+	
+	
+	
+	
+	//sfs_debug_msg("continue 12");
 	$hist[$now][4].=$whodunnit;
 	if (!$deny) {
-		$hist[$now][4].=' passed';
-		$goodips[$ip]=$now;
-		$stats['hist']=$hist;
-		$stats['cntpassed']=$cntpassed+1;
-		$stats['goodips']=$goodips; // uncomment to cache good ips.
-		if ($logfilesize>0) kpg_append_file('.history_log.txt',"$now:$ip,$em,$author,$sname,Passed all\r\n");
-		update_option('kpg_stop_sp_reg_stats',$stats);
-		// comment out log in production
-		//kpg_stop_spam_log();
+		if ($ip!="127.0.0.1") { // don't cache 127.0.0.1 if passes - for testing.
+			$hist[$now][4].=' passed';
+			$goodips[$ip]=$now;
+			$stats['hist']=$hist;
+			$stats['cntpassed']=$cntpassed+1;
+			$stats['goodips']=$goodips; // uncomment to cache good ips.
+			if ($logfilesize>0) kpg_append_file('.history_log.txt',"$now:$ip,$em,$author,$sname,Passed all\r\n");
+			update_option('kpg_stop_sp_reg_stats',$stats);
+			// comment out log in production
+			//kpg_stop_spam_log();
+		}
 		return;
 	}
 	if (!empty($pwd)) $hist[$now][2]=$author.'/'.$pwd;
@@ -619,22 +659,17 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		$spmcount++;
 		$stats['spcount']=$spcount;
 		$stats['spmcount']=$spmcount;
-		if (!empty($em)) $badems[$em]=$now;
-		if (!empty($ip)&& $chkip=='Y') $badips[$ip]=$now;
+		if (!empty($ip)&& $chkip=='Y' && $ip!="127.0.0.1") $badips[$ip]=$now;
 		asort($badips);
-		asort($badems);
 		while (count($badips)>$kpg_sp_cache) array_shift($badips);
-		while (count($badems)>$kpg_sp_cache_em) array_shift($badems);
 		$stats['badips']=$badips;
-		$stats['badems']=$badems;
 	}
 	// I am sick and tired of this guy filling up my logs: dukang2004@yahoo.com
 	if ($email!='dukang2004@yahoo.com'&&$email!='test@test.com' ) { // special case don't bother to log for now.
 		$stats['hist']=$hist;
 	}
 	if ($email!='test@test.com') {
-	// reason types
-		$stats['cntjscript']=$cntjscript;
+		// reason types
 		$stats['cntsfs']=$cntsfs;
 		$stats['cntreferer']=$cntreferer;
 		$stats['cntdisp']=$cntdisp;
@@ -657,7 +692,7 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		$stats['cntbotscout']=$cntbotscout;
 		$stats['cntblem']=$cntblem;
 		$stats['cntlongauth']=$cntlongauth;
-				
+		
 		$stats['cntblip']=$cntblip;
 		$stats['cntaccept']=$cntaccept;
 		$stats['cntpassed']=$cntpassed;
@@ -665,9 +700,10 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		$stats['cntgood']=$cntgood;
 
 		$stats['cntadminlog']=$cntadminlog;
+		$stats['cntspoof']=$cntspoof;
 		
 		//
-			update_option('kpg_stop_sp_reg_stats',$stats);
+		update_option('kpg_stop_sp_reg_stats',$stats);
 		// write out the log file
 		$clogfile=kpg_file_exists('.history_log.txt');
 		if ($clogfile===false) $clogfile=0;
@@ -677,7 +713,6 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 		}
 	}
 	if ($redir=='Y'&&!empty($redirurl)) {
-		//sleep($sleep); // sleep for a few seconds to annoy spammers and maybe delay next hit on stopforumspam.com
 		header('HTTP/1.1 307 Moved');
 		header('Status: 307 Moved');
 		header("location: $redirurl"); 
@@ -688,33 +723,10 @@ function kpg_sfs_check($email='',$author='',$ip,$pwd='') {
 	// add the reason code to the login message
 	$rejectmessage=str_replace('[reason]',$whodunnit,$rejectmessage);
 	$rejectmessage=str_replace('[ip]',$ip,$rejectmessage);
-	if ($notify=='Y') {
-		// need to offer blocked user the chance to whitelisted
-		// reason is in $whodunnit.
-		$knonce=wp_create_nonce('kpgstopspam_wlrequest');
-
-		$r2="
-		<p>
-		If you feel that you have been blocked in error, you may notify the Admin and ask to placed on the
-		system white list. This site's admin will be notified and can review the reason why you were blocked.<br/>
-			<form name=\"DOIT2\" method=\"POST\" action=\"\">
-			 <input type=\"hidden\" name=\"kip\" value=\"$ip\" />
-			 <input type=\"hidden\" name=\"kem\" value=\"$em\" />
-			 <input type=\"hidden\" name=\"kau\" value=\"$author\" />
-			 <input type=\"hidden\" name=\"knot\" value=\"$whodunnit\" />
-			 <input type=\"hidden\" name=\"knotify_key\" value=\"$knonce\" />
-			 Please ask nicely to be admitted here.<br/>
-			 <textarea cols=\"80\" rows=\"5\" name=\"kinf\" value\"\"></textarea>
-		     <input type=\"submit\" value=\"Request to be added to the White List\" />
-			</form>
-		</p>
-		
-		";
-		$rejectmessage=$rejectmessage.$r2;
+	//$captcha='Y';
+	//if ($chkcaptcha!='N') $chkcaptcha='Y'; // what is happening here?
+	kpg_reject_spam($rejectmessage,$notify,$chkcaptcha,$whodunnit);
 	
-	}
-	wp_die("$rejectmessage","Login Access Denied",array('response' => 403));
-	exit();
 }
 /*************************************************
 *  Utility checks
@@ -742,6 +754,7 @@ function kpg_check_spamwords($chk,$spamwords) {
 	$c=str_replace('_','-',$c);
 	$c=str_replace('.','-',$c);
 	foreach ($spamwords as $s) {
+		$s=strtolower($s);
 		if (strpos($c,$s)!==false) {
 			return $s;
 		}
@@ -774,158 +787,159 @@ function kpg_akismet_check($ip) {
 	if (empty($api_key)||empty($agent)||empty($blogurl)) return false;
 	$request="blog=$blogurl&user_ip=$ip&user_agent=$agent";
 	$host = $http_host = $api_key.'.rest.akismet.com';
-    $path = '/1.1/comment-check';
-    $port = 80;
-    $akismet_ua = "WordPress/3.1.1 | Akismet/2.5.3";
-    $content_length = strlen( $request );
-    $http_request  = "POST $path HTTP/1.0\r\n";
-    $http_request .= "Host: $host\r\n";
-    $http_request .= "Content-Type: application/x-www-form-urlencoded\r\n";
-    $http_request .= "Content-Length: {$content_length}\r\n";
-    $http_request .= "User-Agent: {$akismet_ua}\r\n";
-    $http_request .= "\r\n";
-    $http_request .= $request;
-    $response = '';
+	$path = '/1.1/comment-check';
+	$port = 80;
+	$akismet_ua = "WordPress/3.1.1 | Akismet/2.5.3";
+	$content_length = strlen( $request );
+	$http_request  = "POST $path HTTP/1.0\r\n";
+	$http_request .= "Host: $host\r\n";
+	$http_request .= "Content-Type: application/x-www-form-urlencoded\r\n";
+	$http_request .= "Content-Length: {$content_length}\r\n";
+	$http_request .= "User-Agent: {$akismet_ua}\r\n";
+	$http_request .= "\r\n";
+	$http_request .= $request;
+	$response = '';
 	//$f=fopen('akismet.txt',"a");
-    if( false != ( $fs = @fsockopen( $http_host, $port, $errno, $errstr, 10 ) ) ) {
-        fwrite( $fs, $http_request );
-         while ( !feof( $fs ) )
-            $response .= fgets( $fs, 1160 ); // One TCP-IP packet
-        fclose( $fs );
+	if( false != ( $fs = @fsockopen( $http_host, $port, $errno, $errstr, 10 ) ) ) {
+		fwrite( $fs, $http_request );
+		while ( !feof( $fs ) )
+		$response .= fgets( $fs, 1160 ); // One TCP-IP packet
+		fclose( $fs );
 		//fwrite($f,"\r\n$response\r\n");
-        $response = explode( "\r\n\r\n", $response, 2 );
-    }
+		$response = explode( "\r\n\r\n", $response, 2 );
+	}
 	//fwrite($f,"\r\n$request\r\n");
 	//fwrite($f,"\r\n$http_request\r\n");
 	//fclose($f);
-    if ( 'true' == $response[1] )
-        return true;
-    else
-        return false;
+	if ( 'true' == $response[1] )
+	return true;
+	else
+	return false;
 }	
 
 function kpg_check_ubiquity($ip) {
 	if (empty($ip)) return false;
+	if (strpos($ip,'.')===false) return false;
 	$userve=array(
-'XSServer',
-array('46.251.228.0','46.251.229.255'),
-array('109.230.197.0','109.230.197.255'),
-array('109.230.213.0','109.230.213.255'),
-array('109.230.216.0','109.230.217.255'),
-array('109.230.220.0','109.230.223.255'),
-array('109.230.246.0','109.230.246.255'),
-array('109.230.248.0','109.230.249.255'),
-array('109.230.251.0','109.230.251.255'),
-'Ubiquity-Nobis',
-array('23.19.0.0','23.19.255.255'),
-array('64.120.0.0','64.120.127.255'),
-array('67.201.0.0','67.201.7.255'),
-array('67.201.40.0','67.201.40.255'),
-array('67.201.48.0','67.201.49.255'),
-array('69.147.224.0','69.147.225.255'),
-array('69.174.60.0','69.174.63.255'),
-array('70.32.32.0','70.32.47.255'),
-array('72.37.145.0','72.37.145.255'),
-array('72.37.204.0','72.37.204.255'),
-array('72.37.218.0','72.37.219.255'),
-array('72.37.221.0','72.37.221.255'),
-array('72.37.222.0','72.37.223.255'),
-array('72.37.224.0','72.37.231.255'),
-array('72.37.237.0','72.37.237.255'),
-array('72.37.242.0','72.37.243.255'),
-array('72.37.246.0','72.37.247.255'),
-array('108.62.0.0','108.62.255.255'),
-array('173.208.0.0','173.208.127.255'),
-array('173.234.0.0','173.234.255.255'),
-array('174.34.128.0','174.34.191.255'),
-array('216.6.224.0','216.6.239.255'),
-array('176.31.50.64','176.31.50.95'),
-'Balticom',
-array('46.23.32.0','46.23.47.255'),
-array('82.193.64.0','82.193.95.255'),
-array('83.99.128.0','83.99.255.255'),
-array('109.73.96.0','109.73.111.255'),
-array('212.142.64.0','212.142.127.255'),
-'Everhost',
-array('31.2.216.0','31.2.223.255'),
-array('31.47.208.0','31.47.215.255'),
-array('31.220.128.0','31.220.131.255'),
-array('46.108.155.0','46.108.155.255'),
-array('89.42.8.0','89.42.8.255'),
-array('89.42.108.0','89.42.109.255'),
-array('89.44.16.0','89.44.31.255'),
-array('93.118.64.0','93.118.79.255'),
-array('94.60.152.0','94.60.159.255'),
-array('94.60.160.0','94.60.191.255'),
-array('94.60.192.0','94.60.199.255'),
-array('94.63.0.0','94.63.31.255'),
-array('94.63.32.0','94.63.47.255'),
-array('94.63.56.0','94.63.63.255'),
-array('94.63.64.0','94.63.71.255'),
-array('94.63.128.0','94.63.135.255'),
-array('94.63.152.0','94.63.159.255'),
-array('94.63.192.0','94.63.207.255'),
-array('94.177.4.0','94.177.5.255'),
-array('95.64.24.0','95.64.31.255'),
-array('95.64.32.0','95.64.32.255'),
-array('95.64.41.0','95.64.41.255'),
-array('95.64.42.0','95.64.42.255'),
-array('95.64.110.0','95.64.111.255'),
-array('95.128.168.0','95.128.168.255'),
-array('95.128.174.0','95.128.175.255'),
-array('95.187.0.0','95.187.127.255'),
-array('178.255.36.0','178.255.37.255'),
-array('178.255.38.0','178.255.38.255'),
-array('188.208.0.0','188.208.15.255'),
-array('188.215.0.0','188.215.0.255'),
-array('188.215.32.0','188.215.35.255'),
-array('188.229.19.0','188.229.19.255'),
-array('188.229.20.0','188.229.23.255'),
-array('188.229.38.0','188.229.38.255'),
-array('188.229.103.0','188.229.103.255'),
-array('188.229.104.0','188.229.111.255'),
-array('188.229.124.0','188.229.127.255'),
-array('188.240.36.0','188.240.39.255'),
-array('188.240.160.0','188.240.175.255'),
-array('188.240.192.0','188.240.223.255'),
-array('188.247.128.0','188.247.128.255'),
-array('188.247.228.0','188.247.229.255'),
-'FDC',
-array('67.159.0.0','67.159.63.255'),
-array('66.90.64.0','66.90.127.255'),
-array('208.53.128.0','208.53.191.255'),
-array('50.7.0.0','50.7.255.255'),
-array('204.45.0.0','204.45.255.255'),
-array('76.73.0.0','76.73.255.255'),
-array('74.63.64.0','74.63.127.255'),
-'Exetel',
-array('109.230.244.0','109.230.245.255'),
-array('31.214.155.0','31.214.155.255'),
-'Virpus',
-array('50.115.160.0','50.115.175.255'),
-array('173.0.48.0','173.0.63.255'),
-array('199.119.224.0','199.119.227.255'),
-array('199.180.128.0','199.180.135.255'),
-array('208.89.208.0','208.89.215.255'),
-'MiscSpamServer',
-array('74.63.222.74','74.63.222.74'),
-array('86.181.176.121','86.181.176.121'),
-array('98.126.4.202','98.126.4.202'),
-array('98.126.251.234','98.126.251.234'),
-array('188.168.0.0','188.168.255.255'),
-array('81.17.22.21','81.17.22.21'),
-array('66.219.17.212','66.219.17.212'),
-array('46.29.248.0','46.29.249.255'),
-array('74.221.208.0','74.221.223.255'),
-array('109.169.57.204','109.169.57.204'),
-array('184.22.139.0','184.22.139.255'),
-array('99.187.246.108','99.187.246.108'),
-array('195.62.24.0','195.62.25.255'),
-array('141.105.65.151','141.105.65.151'),
-array('146.0.74.0','146.0.74.255'),
-array('194.28.112.0','194.28.115.255'),
-array('159.224.130.96','159.224.130.96')
-);
+	'XSServer',
+	array('46.251.228.0','46.251.229.255'),
+	array('109.230.197.0','109.230.197.255'),
+	array('109.230.213.0','109.230.213.255'),
+	array('109.230.216.0','109.230.217.255'),
+	array('109.230.220.0','109.230.223.255'),
+	array('109.230.246.0','109.230.246.255'),
+	array('109.230.248.0','109.230.249.255'),
+	array('109.230.251.0','109.230.251.255'),
+	'Ubiquity-Nobis',
+	array('23.19.0.0','23.19.255.255'),
+	array('64.120.0.0','64.120.127.255'),
+	array('67.201.0.0','67.201.7.255'),
+	array('67.201.40.0','67.201.40.255'),
+	array('67.201.48.0','67.201.49.255'),
+	array('69.147.224.0','69.147.225.255'),
+	array('69.174.60.0','69.174.63.255'),
+	array('70.32.32.0','70.32.47.255'),
+	array('72.37.145.0','72.37.145.255'),
+	array('72.37.204.0','72.37.204.255'),
+	array('72.37.218.0','72.37.219.255'),
+	array('72.37.221.0','72.37.221.255'),
+	array('72.37.222.0','72.37.223.255'),
+	array('72.37.224.0','72.37.231.255'),
+	array('72.37.237.0','72.37.237.255'),
+	array('72.37.242.0','72.37.243.255'),
+	array('72.37.246.0','72.37.247.255'),
+	array('108.62.0.0','108.62.255.255'),
+	array('173.208.0.0','173.208.127.255'),
+	array('173.234.0.0','173.234.255.255'),
+	array('174.34.128.0','174.34.191.255'),
+	array('216.6.224.0','216.6.239.255'),
+	array('176.31.50.64','176.31.50.95'),
+	'Balticom',
+	array('46.23.32.0','46.23.47.255'),
+	array('82.193.64.0','82.193.95.255'),
+	array('83.99.128.0','83.99.255.255'),
+	array('109.73.96.0','109.73.111.255'),
+	array('212.142.64.0','212.142.127.255'),
+	'Everhost',
+	array('31.2.216.0','31.2.223.255'),
+	array('31.47.208.0','31.47.215.255'),
+	array('31.220.128.0','31.220.131.255'),
+	array('46.108.155.0','46.108.155.255'),
+	array('89.42.8.0','89.42.8.255'),
+	array('89.42.108.0','89.42.109.255'),
+	array('89.44.16.0','89.44.31.255'),
+	array('93.118.64.0','93.118.79.255'),
+	array('94.60.152.0','94.60.159.255'),
+	array('94.60.160.0','94.60.191.255'),
+	array('94.60.192.0','94.60.199.255'),
+	array('94.63.0.0','94.63.31.255'),
+	array('94.63.32.0','94.63.47.255'),
+	array('94.63.56.0','94.63.63.255'),
+	array('94.63.64.0','94.63.71.255'),
+	array('94.63.128.0','94.63.135.255'),
+	array('94.63.152.0','94.63.159.255'),
+	array('94.63.192.0','94.63.207.255'),
+	array('94.177.4.0','94.177.5.255'),
+	array('95.64.24.0','95.64.31.255'),
+	array('95.64.32.0','95.64.32.255'),
+	array('95.64.41.0','95.64.41.255'),
+	array('95.64.42.0','95.64.42.255'),
+	array('95.64.110.0','95.64.111.255'),
+	array('95.128.168.0','95.128.168.255'),
+	array('95.128.174.0','95.128.175.255'),
+	array('95.187.0.0','95.187.127.255'),
+	array('178.255.36.0','178.255.37.255'),
+	array('178.255.38.0','178.255.38.255'),
+	array('188.208.0.0','188.208.15.255'),
+	array('188.215.0.0','188.215.0.255'),
+	array('188.215.32.0','188.215.35.255'),
+	array('188.229.19.0','188.229.19.255'),
+	array('188.229.20.0','188.229.23.255'),
+	array('188.229.38.0','188.229.38.255'),
+	array('188.229.103.0','188.229.103.255'),
+	array('188.229.104.0','188.229.111.255'),
+	array('188.229.124.0','188.229.127.255'),
+	array('188.240.36.0','188.240.39.255'),
+	array('188.240.160.0','188.240.175.255'),
+	array('188.240.192.0','188.240.223.255'),
+	array('188.247.128.0','188.247.128.255'),
+	array('188.247.228.0','188.247.229.255'),
+	'FDC',
+	array('67.159.0.0','67.159.63.255'),
+	array('66.90.64.0','66.90.127.255'),
+	array('208.53.128.0','208.53.191.255'),
+	array('50.7.0.0','50.7.255.255'),
+	array('204.45.0.0','204.45.255.255'),
+	array('76.73.0.0','76.73.255.255'),
+	array('74.63.64.0','74.63.127.255'),
+	'Exetel',
+	array('109.230.244.0','109.230.245.255'),
+	array('31.214.155.0','31.214.155.255'),
+	'Virpus',
+	array('50.115.160.0','50.115.175.255'),
+	array('173.0.48.0','173.0.63.255'),
+	array('199.119.224.0','199.119.227.255'),
+	array('199.180.128.0','199.180.135.255'),
+	array('208.89.208.0','208.89.215.255'),
+	'MiscSpamServer',
+	array('74.63.222.74','74.63.222.74'),
+	array('86.181.176.121','86.181.176.121'),
+	array('98.126.4.202','98.126.4.202'),
+	array('98.126.251.234','98.126.251.234'),
+	array('188.168.0.0','188.168.255.255'),
+	array('81.17.22.21','81.17.22.21'),
+	array('66.219.17.212','66.219.17.212'),
+	array('46.29.248.0','46.29.249.255'),
+	array('74.221.208.0','74.221.223.255'),
+	array('109.169.57.204','109.169.57.204'),
+	array('184.22.139.0','184.22.139.255'),
+	array('99.187.246.108','99.187.246.108'),
+	array('195.62.24.0','195.62.25.255'),
+	array('141.105.65.151','141.105.65.151'),
+	array('146.0.74.0','146.0.74.255'),
+	array('194.28.112.0','194.28.115.255'),
+	array('159.224.130.96','159.224.130.96')
+	);
 	$srv='';
 	// convert to long string with leading zeros
 	$x=explode('.',$ip);
@@ -934,7 +948,7 @@ array('159.224.130.96','159.224.130.96')
 		if (!is_array($userve[$j])) {
 			$srv=$userve[$j];
 		} else {
-		    $ips=$userve[$j];
+			$ips=$userve[$j];
 			$x=explode('.',$ips[0]);
 			$st=str_pad($x[0],3,"0", STR_PAD_LEFT).str_pad($x[1],3,"0", STR_PAD_LEFT).str_pad($x[2],3,"0", STR_PAD_LEFT); 
 			$x=explode('.',$ips[1]);
@@ -962,7 +976,7 @@ function kpg_dnsbl_data_old($ip,$data,$apikey='') {
 			// [1] is numbr of days since last report
 			// spammers are type 1 to 7
 			if ($result[2]>=25 && ($result[3]>=1&&$result[3]<=7)&&$result[1]>0) {
-			   return $data.':'.$result[0].','.$result[1].','.$result[2].','.$result[3];
+				return $data.':'.$result[0].','.$result[1].','.$result[2].','.$result[3];
 			} 
 		} 
 	} 
@@ -978,7 +992,6 @@ function kpg_dnsbl_data($ip,$data,$apikey='') {
 
 	if (count($result)==8) array_shift($result);
 	$ret=$result[0].'.'.$result[1].'.'.$result[2].'.'.$result[3];
-	//echo "  results: $ret";
 	if (count($result)>4) $retip=$result[3].'.'.$result[2].'.'.$result[1].'.'.$result[0];
 	if (count($result)>4 && $retip!=$ip) {
 		if ($result[0] == 127) {
@@ -989,28 +1002,46 @@ function kpg_dnsbl_data($ip,$data,$apikey='') {
 			// [1] is numbr of days since last report
 			// spameers are type 1 to 7
 			if ($result[2]>=25 && ($result[3]>=1&&$result[3]<=7)&&$result[1]>0) {
-			   return $data.':'.$result[0].','.$result[1].','.$result[2].','.$result[3];
+				return $data.':'.$result[0].','.$result[1].','.$result[2].','.$result[3];
 			} 
 		} 
 	} 
 	return false;
 }
+// from irongeek.com
+function kpg_check_tor($ip){
+	$sp=$_SERVER['SERVER_PORT'];
+	if (empty($sp)) $sp=80;
+	$sa=$_SERVER['SERVER_ADDR'];
+	if ($sa=='127.0.0.1') return false;
+	$sa=implode('.', array_reverse(explode ('.', $sa )));
+	$sip=implode('.', array_reverse(explode ('.', $ip )));
+	$lookup=$sip.'.'.$sp.'.'.$sa.'.ip-port.exitlist.torproject.org';
+	$ret=gethostbyname($lookup);
+	if ($ret=="127.0.0.2") {
+		return true;
+	}
+	return false;
+}
+
 
 function kpg_check_all_dnsbl($ip) {
- 	if (empty($ip)) return false; // disable while I think about this.
+	if (empty($ip)) return false; // disable while I think about this.
 	// just for the heck of it, I found a bunch of blacklist sites
 	// these use the dns returns but don't need an api key as far as I know
-   $iplist = array(
-	    'sbl.spamhaus' 	=> '.sbl.spamhaus.org', 
-	    'xbl.spamhaus' 	=> '.xbl.spamhaus.org',
-	    //'dsbl' 	 	=> '.list.dsbl.org', // too slow
-	    // 'sorbs' 	=> '.dnsbl.sorbs.net', // sorbs reports everyone as 10.0.0.127
-	    'spamcop' 	=> '.bl.spamcop.net',
-	    'ordb' 		=> '.relays.ordb.org',
-	    'njabl' 	=> '.dnsbl.njabl.org'
-    ); 
+	
+	// altered to only check spamhaus. everybody else was too slow.
+	$iplist = array(
+	'sbl.spamhaus' 	=> '.sbl.spamhaus.org', 
+	'xbl.spamhaus' 	=> '.xbl.spamhaus.org'
+	//'dsbl' 	 	=> '.list.dsbl.org', // too slow
+	// 'sorbs' 	=> '.dnsbl.sorbs.net', // sorbs reports everyone as 10.0.0.127
+	//'spamcop' 	=> '.bl.spamcop.net',
+	//'ordb' 		=> '.relays.ordb.org',
+	//'njabl' 	=> '.dnsbl.njabl.org'
+	); 
 	foreach($iplist as $key=>$data) {
-	    $ansa=kpg_dnsbl_data($ip,$data);
+		$ansa=kpg_dnsbl_data($ip,$data);
 		if ($ansa!==false) {
 			return $ansa;
 		}
@@ -1019,16 +1050,16 @@ function kpg_check_all_dnsbl($ip) {
 }
 
 function kpg_sp_checkPayPal($ip) { // returns true if a whitelisted paypal ip
-$paypal=array('173.0.88.66','173.0.88.98','173.0.84.66','173.0.84.98','66.211.168.91','66.211.168.123','173.0.88.67','173.0.88.99','173.0.84.99','173.0.84.67','66.211.168.92','66.211.168.124','173.0.88.69','173.0.88.101','173.0.84.69','173.0.84.101','66.211.168.126','66.211.168.194','173.0.88.68','173.0.88.100','173.0.84.68','173.0.84.100','66.211.168.125','66.211.168.195','173.0.81.1','173.0.81.33','66.211.170.66','216.113.188.100','66.211.168.93','173.0.80.0/20','64.4.240.0/20','66.211.160.0/19','118.214.15.186','118.215.103.186','118.215.119.186','118.215.127.186','118.215.15.186','118.215.151.186','118.215.159.186','118.215.167.186','118.215.199.186','118.215.207.186','118.215.215.186','118.215.231.186','118.215.255.186','118.215.39.186','118.215.63.186','118.215.7.186','118.215.79.186','118.215.87.186','118.215.95.186','202.43.63.186','69.192.31.186','72.247.111.186','88.221.43.186','92.122.143.186','92.123.151.186','92.123.159.186','92.123.163.186','92.123.167.186','92.123.179.186','92.123.183.186','92.123.199.186','92.123.203.186','92.123.207.186','92.123.211.186','92.123.215.186','92.123.219.186','92.123.247.186','92.123.255.186','95.100.31.186','96.16.199.186','96.16.23.186','96.16.247.186','96.16.255.186','96.16.39.186','96.16.55.186','96.17.47.186','96.6.239.186','96.6.79.186','96.7.175.186','96.7.191.186','96.7.199.186','96.7.231.186','96.7.247.186','216.113.188.64','216.113.188.34','173.0.84.178','173.0.84.212','173.0.88.178','173.0.88.212','66.211.168.136','66.211.168.66','173.0.88.203','173.0.84.171','173.0.84.203','173.0.88.171','66.211.168.142','66.211.168.150','173.0.84.76','173.0.88.76','173.0.84.108','173.0.88.108','66.211.168.158','66.211.168.180','118.214.15.186','118.215.103.186','118.215.119.186','118.215.127.186','118.215.15.186','118.215.151.186','118.215.159.186','118.215.167.186','118.215.199.186','118.215.207.186','118.215.215.186','118.215.231.186','118.215.255.186','118.215.39.186','118.215.63.186','118.215.7.186','118.215.79.186','118.215.87.186','118.215.95.186','202.43.63.186','69.192.31.186','72.247.111.186','88.221.43.186','92.122.143.186','92.123.151.186','92.123.159.186','92.123.163.186','92.123.167.186','92.123.179.186','92.123.183.186','92.123.199.186','92.123.203.186','92.123.207.186','92.123.211.186','92.123.215.186','92.123.219.186','92.123.247.186','92.123.255.186','95.100.31.186','96.16.199.186','96.16.23.186','96.16.247.186','96.16.255.186','96.16.39.186','96.16.55.186','96.17.47.186','96.6.239.186','96.6.79.186','96.7.175.186','96.7.191.186','96.7.199.186','96.7.231.186','96.7.247.186',
-// sandbox
-'173.0.82.75','173.0.82.91','173.0.82.77','173.0.82.78','173.0.82.79','173.0.82.75','173.0.82.126','173.0.82.83','173.0.82.84','173.0.82.86','173.0.82.89','173.0.82.101'
-);
+	$paypal=array('173.0.88.66','173.0.88.98','173.0.84.66','173.0.84.98','66.211.168.91','66.211.168.123','173.0.88.67','173.0.88.99','173.0.84.99','173.0.84.67','66.211.168.92','66.211.168.124','173.0.88.69','173.0.88.101','173.0.84.69','173.0.84.101','66.211.168.126','66.211.168.194','173.0.88.68','173.0.88.100','173.0.84.68','173.0.84.100','66.211.168.125','66.211.168.195','173.0.81.1','173.0.81.33','66.211.170.66','216.113.188.100','66.211.168.93','173.0.80.0/20','64.4.240.0/20','66.211.160.0/19','118.214.15.186','118.215.103.186','118.215.119.186','118.215.127.186','118.215.15.186','118.215.151.186','118.215.159.186','118.215.167.186','118.215.199.186','118.215.207.186','118.215.215.186','118.215.231.186','118.215.255.186','118.215.39.186','118.215.63.186','118.215.7.186','118.215.79.186','118.215.87.186','118.215.95.186','202.43.63.186','69.192.31.186','72.247.111.186','88.221.43.186','92.122.143.186','92.123.151.186','92.123.159.186','92.123.163.186','92.123.167.186','92.123.179.186','92.123.183.186','92.123.199.186','92.123.203.186','92.123.207.186','92.123.211.186','92.123.215.186','92.123.219.186','92.123.247.186','92.123.255.186','95.100.31.186','96.16.199.186','96.16.23.186','96.16.247.186','96.16.255.186','96.16.39.186','96.16.55.186','96.17.47.186','96.6.239.186','96.6.79.186','96.7.175.186','96.7.191.186','96.7.199.186','96.7.231.186','96.7.247.186','216.113.188.64','216.113.188.34','173.0.84.178','173.0.84.212','173.0.88.178','173.0.88.212','66.211.168.136','66.211.168.66','173.0.88.203','173.0.84.171','173.0.84.203','173.0.88.171','66.211.168.142','66.211.168.150','173.0.84.76','173.0.88.76','173.0.84.108','173.0.88.108','66.211.168.158','66.211.168.180','118.214.15.186','118.215.103.186','118.215.119.186','118.215.127.186','118.215.15.186','118.215.151.186','118.215.159.186','118.215.167.186','118.215.199.186','118.215.207.186','118.215.215.186','118.215.231.186','118.215.255.186','118.215.39.186','118.215.63.186','118.215.7.186','118.215.79.186','118.215.87.186','118.215.95.186','202.43.63.186','69.192.31.186','72.247.111.186','88.221.43.186','92.122.143.186','92.123.151.186','92.123.159.186','92.123.163.186','92.123.167.186','92.123.179.186','92.123.183.186','92.123.199.186','92.123.203.186','92.123.207.186','92.123.211.186','92.123.215.186','92.123.219.186','92.123.247.186','92.123.255.186','95.100.31.186','96.16.199.186','96.16.23.186','96.16.247.186','96.16.255.186','96.16.39.186','96.16.55.186','96.17.47.186','96.6.239.186','96.6.79.186','96.7.175.186','96.7.191.186','96.7.199.186','96.7.231.186','96.7.247.186',
+	// sandbox
+	'173.0.82.75','173.0.82.91','173.0.82.77','173.0.82.78','173.0.82.79','173.0.82.75','173.0.82.126','173.0.82.83','173.0.82.84','173.0.82.86','173.0.82.89','173.0.82.101'
+	);
 	return in_array($ip,$paypal);
 }
 
 function kpg_stop_spam_log() {
-// when trying to find new spammers use this to dump info about those who pass all tests.
-// Of the comments and logins that pass, very few are not from spammers or hackers.
+	// when trying to find new spammers use this to dump info about those who pass all tests.
+	// Of the comments and logins that pass, very few are not from spammers or hackers.
 	$r="\r\n=============================================\r\n";
 	$r.=date('Y/m/d H:i:s',time() + ( get_option( 'gmt_offset' ) * 3600 ));
 	$r.="\r\n".print_r($_POST,true);
