@@ -4,3 +4,4 @@
 /db-sync
 /content/upgrade/
 .DS_Store
+content/plugins/si-captcha-for-wordpress/captcha/cache/
