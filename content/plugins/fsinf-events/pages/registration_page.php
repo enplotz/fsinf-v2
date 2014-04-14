@@ -6,13 +6,18 @@ function fsfin_events_booking_form()
   $curr_event = fsinf_get_current_event();
 
   if(is_null($curr_event)) {
+    ob_start();
 ?>  <div class="alert alert-info">
       <a class="close" data-dismiss="alert">×</a>
       <p>Aktuell ist kein Event eingetragen.</p>
     </div>
 <?php
-    return;
+    return ob_get_clean();
   }
+
+
+  // TODO this could get ugly to debug, if after this call someone desides to also use output buffering
+  ob_start();
 
   $errors = array();
   if (array_key_exists('fsinf_events_register', $_POST)) {
@@ -170,5 +175,5 @@ $field_name = 'notes';
       </form>
 
 <?php
-  #echo '<pre>'.print_r($_POST, true).'</pre>';
+  return ob_get_clean();
 }

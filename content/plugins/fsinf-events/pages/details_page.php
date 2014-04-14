@@ -5,7 +5,11 @@ add_shortcode('fsinfcurrenteventdetails', 'fsfin_events_details');
 function fsfin_events_details()
 {
   $current_event = fsinf_get_current_event();
-  if(!empty($current_event)){
+  if(empty($current_event)) {
+    return "";
+  }
+  // TODO this could get ugly to debug, if after this call someone desides to also use output buffering
+  ob_start();
 ?>
   <h3><?= $current_event->title ?></h3>
   <div class="row">
@@ -33,19 +37,20 @@ function fsfin_events_details()
 
   $empty_places = $current_event->max_participants - $number_admitted_registrations;
 ?>
+  <div class="places" style="font-size: 20px; line-height: 20px;">
   <span title="Angemeldet: <?= $number_admitted_registrations ?>">
 <?php
   foreach ($admitted_registrations as $person) {
       if ($person->paid):
 ?>
-      <span style="font-size: 32px; line-height: 32px; color: blue; margin-right: -9px;">
-        <i class="icon-user"></i>
+      <span style="color: blue; margin-right: -4px;">
+        <span class="glyphicon glyphicon-user"></span>
       </span>
 <?php
     else:
 ?>
-      <span style="font-size: 32px; line-height: 32px; color: red; margin-right: -9px;">
-        <i class="icon-user"></i>
+      <span style="color: red; margin-right: -4px;">
+        <span class="glyphicon glyphicon-user"></span>
       </span>
 <?php
     endif;
@@ -56,13 +61,14 @@ function fsfin_events_details()
 <?php
     for ($i=0; $i < $empty_places; $i++) {
 ?>
-      <span style="font-size: 32px; line-height: 32px; color: green; margin-right: -9px;">
-        <i class="icon-user"></i>
+      <span style="color: green; margin-right: -4px;">
+        <span class="glyphicon glyphicon-user"></span>
       </span>
 <?php
     }
 ?>
 </span>
+</div>
 <p>Blau: bezahlt | Rot: nicht bezahlt | Grün: frei</p>
 <!--
   <table class="table table-hover">
@@ -92,5 +98,5 @@ function fsfin_events_details()
           </tbody>
         </table>-->
 <?php
-}
+  return ob_get_clean();
 }
