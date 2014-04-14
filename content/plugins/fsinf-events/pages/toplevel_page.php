@@ -113,26 +113,26 @@ function fsinf_events_toplevel_page() {
                           <?php
                             if (!$participant->paid):
                           ?>
-                            <button type="submit" class="btn btn-mini" title="Hat bezahlt" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_paid_by"><i class="icon-shopping-cart"></i></button>
+                            <button type="submit" class="btn btn-mini" title="Hat bezahlt" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_paid_by"><span class="dashicons dashicons-cart"></span></button>
                           <?php
                             else:
                           ?>
-                            <button type="submit" class="btn btn-mini" title="Hat nicht bezahlt" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_not_paid_by"><i class="icon-remove-sign"></i></button>
+                            <button type="submit" class="btn btn-mini" title="Hat nicht bezahlt" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_not_paid_by"><span class="dashicons dashicons-no-alt"></span></button>
                           <?php
                             endif;
                           ?>
                           <?php
                             if (!$participant->admitted):
                           ?>
-                            <button type="submit" class="btn btn-mini" title="Zugelassen" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_admitted_for"><i class="icon-ok"></i></button>
+                            <button type="submit" class="btn btn-mini" title="Zugelassen" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_admitted_for"><span class="dashicons dashicons-yes"></span></button>
                           <?php
                             else:
                           ?>
-                            <button type="submit" class="btn btn-mini" title="Nicht mehr zugelassen" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_not_admitted_for"><i class="icon-remove"></i></button>
+                            <button type="submit" class="btn btn-mini" title="Nicht mehr zugelassen" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_not_admitted_for"><span class="dashicons dashicons-no-alt"></span></button>
                           <?php
                             endif;
                           ?>
-                          <button type="submit" class="btn btn-danger btn-mini" title="Entfernen" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_cancel_for"><i class="icon-trash"></i></button>
+                          <button type="submit" class="btn btn-danger btn-mini" title="Entfernen" value="<?= htmlspecialchars($participant->mail_address);?>" name="participation_cancel_for"><span class="dashicons dashicons-trash"></span></button>
                       </div>
                         </form>
                     </td>
