@@ -25,7 +25,8 @@ function fsfin_events_booking_form()
     if(count($errors) == 0):
       fsinf_print_success_message();
     else:
-?>    <div class="alert alert-error">
+?>    <div class="alert alert-danger">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
         Das Formular enthält noch fehlerhafte Eingaben. Bitte korrigiere diese und schicke es erneut ab.
       </div>
 <?php
@@ -33,46 +34,53 @@ function fsfin_events_booking_form()
   }
 
 ?>  <h2>Anmeldung zum Event: <?= htmlspecialchars($curr_event->title) ?></h2>
-      <form method="POST" action="" class="form-horizontal">
-
+      <form method="POST" action="" role="form" class="form-horizontal">
         <fieldset>
           <legend>Persönliches</legend>
 <?php
 $field_name = 'first_name';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">Vorname</label>
-          <div class="controls">
-          <input type="text" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="255" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
-          <span class="help-inline"><?= @$errors[$field_name] ?></span>
+$display_name = 'Vorname';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="255" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
+              <span class="help-inline"><?= @$errors[$field_name] ?></span>
+            </div>
           </div>
-        </div>
 
 <?php
 $field_name = 'last_name';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">Nachname</label>
-          <div class="controls">
-          <input type="text" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="255" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
-          <span class="help-inline"><?= @$errors[$field_name] ?></span>
+$display_name = 'Nachname';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+              <input type="text" class="form-control" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="255" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
+              <span class="help-inline"><?= @$errors[$field_name] ?></span>
+            </div>
           </div>
-        </div>
 
 <?php
 $field_name = 'mail_address';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">E-Mail-Adresse</label>
-          <div class="controls">
-          <input type="email" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="127" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
+$display_name = 'E-Mail-Adresse';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+          <input type="email" class="form-control" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="127" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
           <span class="help-inline"><?= @$errors[$field_name] ?></span>
           </div>
         </div>
 
 <?php
 $field_name = 'mobile_phone';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">Handy-Nummer</label>
-          <div class="controls">
-          <input type="text" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="255" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
+$display_name = 'Handy-Nummer';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+          <input type="text" class="form-control" name="<?=$field_name?>" id="<?=$field_name?>" maxlength="255" value="<?= fsinf_field_contents($field_name, $errors) ?>"/>
           <span class="help-inline"><?= @$errors[$field_name] ?></span>
           </div>
         </div>
@@ -81,10 +89,12 @@ $field_name = 'mobile_phone';
           <legend>Studium</legend>
 <?php
 $field_name = 'semester';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">Semester</label>
-          <div class="controls">
-        <select name="<?=$field_name?>" id="<?=$field_name?>">
+$display_name = 'Semester';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+        <select class="form-control" name="<?=$field_name?>" id="<?=$field_name?>">
 <?php
 $semesters = array(1, 2, 3, 4, 5, 6, 99);
 $selected = array_key_exists($field_name, $errors) ? 1 : intval($_POST[$field_name]);
@@ -99,14 +109,19 @@ endforeach;
 <?php
 $field_name = 'bachelor';
 $bachelor = empty($errors) || array_key_exists($field_name, $errors) || intval($_POST[$field_name]) == 1;
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-            <div class="controls">
-              <label class="radio" >Bachelor
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <div class="col-sm-offset-2 col-sm-10">
+            <div  class="radio">
+              <label>Bachelor
                 <input type="radio" name="bachelor" value="1"<?= $bachelor ? ' checked="checked"' : ''?>/>
               </label>
-              <label class="radio" >Master
+              </div>
+              <div  class="radio">
+              <label>Master
                 <input type="radio" name="bachelor" value="0"<?= !$bachelor ? ' checked="checked"' : ''?>/>
               </label>
+              </div>
             </div>
           </div>
         </fieldset>
@@ -117,53 +132,67 @@ $bachelor = empty($errors) || array_key_exists($field_name, $errors) || intval($
 <?php
 $field_name = 'has_car';
 $selected = !empty($errors) && array_key_exists($field_name, $_POST);
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-            <div class="controls">
-              <label class="checkbox inline">Ich habe ein Auto und kann damit zur Hütte fahren.
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <div class="col-sm-offset-2 col-sm-10">
+            <div class="checkbox">
+              <label>Ich habe ein Auto und kann damit zur Hütte fahren.
                 <input type="checkbox" name="<?=$field_name?>" value="1" <?= $selected ? ' checked="checked"' : '' ?>/>
               </label>
+              </div>
             </div>
           </div>
 
 <?php
 $field_name = 'car_seats';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">Wie viele Plätze im Auto? Inkl. Fahrer.</label>
-          <div class="controls">
-            <input type="number" name="<?=$field_name?>" id="<?=$field_name?>" value="<?= fsinf_field_contents($field_name, $errors) ?>" placeholder="z.B. 5" min="1" max="127"/>
+$display_name = 'Wie viele Plätze sind im Auto inklusive des Fahrers?';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+            <input class="form-control" type="number" name="<?=$field_name?>" id="<?=$field_name?>" value="<?= fsinf_field_contents($field_name, $errors) ?>" placeholder="z.B. 5" min="1" max="127"/>
             <span class="help-inline"><?= @$errors[$field_name] ?></span>
-          </div></div>
+          </div>
+        </div>
 
 <?php  if (intval($curr_event->camping)) :
 ?>
 <?php
 $field_name = 'has_tent';
 $selected = !empty($errors) && array_key_exists($field_name, $_POST);
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-            <div class="controls">
-              <label class="checkbox inline">Ich habe ein Zelt und kann dies mitnehmen.
+?>
+          <div class="form-group has-has-<?= error_class($field_name, $errors) ?>">
+            <div class="col-sm-offset-2 col-sm-10">
+            <div class="checkbox">
+              <label>Ich habe ein Zelt und kann dies mitnehmen.
                 <input type="checkbox" name="<?=$field_name?>" value="1" <?= $selected ? ' checked="checked"' : '' ?>/>
               </label>
+              </div>
             </div>
           </div>
 
 <?php
 $field_name = 'tent_size';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">Wie viele Plätze im Zelt? Inkl. Besitzer.</label>
-          <div class="controls">
-            <input type="number" name="<?=$field_name?>" id="<?=$field_name?>" value="<?= fsinf_field_contents($field_name, $errors) ?>" placeholder="z.B. 4" min="1" max="127"/>
+$display_name = 'Wie viele Schlafplätze sind im Zelt inklusive dir?';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+            <input class="form-control" type="number" name="<?=$field_name?>" id="<?=$field_name?>" value="<?= fsinf_field_contents($field_name, $errors) ?>" placeholder="z.B. 5" min="1" max="127"/>
             <span class="help-inline"><?= @$errors[$field_name] ?></span>
-          </div></div>
+          </div>
+        </div>
 <?php endif;
 ?>
 
 <?php
 $field_name = 'notes';
-?>        <div class="control-group <?= error_class($field_name, $errors) ?>">
-          <label class="control-label" for="<?=$field_name?>">Bemerkungen (Vegi o.ä)</label>
-          <div class="controls">
-            <textarea placeholder="z.B. Ich bin Vegetarier/Veganer/Pescetarier..." name="<?=$field_name?>" id="<?=$field_name?>" rows="4"><?= fsinf_field_contents($field_name, $errors) ?></textarea>
+$display_name = 'Bemerkungen (Vegi o.ä)';
+?>
+          <div class="form-group has-<?= error_class($field_name, $errors) ?>">
+            <label class="col-sm-2 control-label" for="<?=$field_name?>"><?= $display_name ?></label>
+            <div class="col-sm-10">
+            <textarea class="form-control" placeholder="z.B. Ich bin Vegetarier/Veganer/Pescetarier..." name="<?=$field_name?>" id="<?=$field_name?>" rows="4"><?= fsinf_field_contents($field_name, $errors) ?></textarea>
           </div>
         </div>
         </fieldset>
