@@ -20,14 +20,13 @@ To bump the version of Wordpress to a specific version,
 you have to reset the `/wp/` submodule to the commit containing the version.
 You can do this as follows:
 
-To pull all branch information from origin:
+To pull all branch information from wordpress repository, including tags:
 
-	git fetch
+	git fetch --tags
 
-If the version has a tag:
+Checkout the tagged version:
 
-	git checkout versionNumber-branch
-	git reset --hard tag-name
+	git checkout 3.8.2
 
 If the version has no tag:
 
