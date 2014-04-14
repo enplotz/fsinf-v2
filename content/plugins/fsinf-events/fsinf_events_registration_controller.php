@@ -40,9 +40,8 @@ function send_registration_mail($fields){
   $message[] = "\n";
   $message[] = "==== Konto";
   $message[] = "Inhaber:\t" . get_option( "konto_inhaber" );
-  $message[] = "Kontonummer:\t". get_option( "konto_nummer" );
-  $message[] = "BLZ:\t\t". get_option( "konto_bankleitzahl" );
-  $message[] = "Institut:\t". get_option( "konto_institut" );
+  $message[] = "IBAN:\t". get_option( "konto_iban" );
+  $message[] = "BIC:\t". get_option( "konto_bic" );
   $message[] = "Betrag:\t\t". $fee;
   $message[] = "=============";
   $message[] = "\n";
@@ -108,8 +107,8 @@ function fsinf_print_success_message(){
     </div>
         <h4>Kontodaten</h4>
               <dt>Inhaber</dt><dd> <?= get_option( "konto_inhaber" ); ?></dd>
-              <dt>Kontonummer</dt><dd><?= get_option( "konto_nummer" ); ?></dd>
-              <dt>BLZ</dt><dd><?= get_option( "konto_bankleitzahl" ); ?></dd>
+              <dt>IBAN</dt><dd><?= get_option( "konto_iban" ); ?></dd>
+              <dt>BIC</dt><dd><?= get_option( "konto_bic" ); ?></dd>
               <dt>Institut</dt><dd> <?= get_option( "konto_institut" ); ?></dd>
               <dt>Betrag</dt><dd><?=$fee?></dd>
         <h4>Deine Registrierungsinformationen</h4>

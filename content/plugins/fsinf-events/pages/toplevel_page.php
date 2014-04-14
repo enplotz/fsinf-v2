@@ -73,15 +73,15 @@ function fsinf_events_toplevel_page() {
           </div>
             <dl class="span4">
               <dt>Inhaber</dt><dd> <?= get_option( "konto_inhaber" ); ?></dd>
-              <dt>Kontonummer</dt><dd><?= get_option( "konto_nummer" ); ?></dd>
-              <dt>BLZ</dt><dd><?= get_option( "konto_bankleitzahl" ); ?></dd>
+              <dt>IBAN</dt><dd><?= get_option( "konto_iban" ); ?></dd>
+              <dt>BIC</dt><dd><?= get_option( "konto_bic" ); ?></dd>
               <dt>Institut</dt><dd> <?= get_option( "konto_institut" ); ?></dd>
             </dl>
           </div> <!-- END row -->
 <?php
             if ($number_registrations > 0) {
 ?>
-            <table class="table table-bordered table-hover">
+            <table class="widefat">
               <thead>
                 <tr>
                   <th>Bearbeiten</th>

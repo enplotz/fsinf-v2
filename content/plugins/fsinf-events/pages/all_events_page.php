@@ -32,7 +32,7 @@ if(sizeOf($coming_events) == 0) : ?>
             <p>Aktuell gibt es keine kommenden Events.</p>
           </div>
 <?php else : ?>
-        <table class="table table-hover">
+        <table class="widefat">
           <thead>
             <tr>
             <th>Bearbeiten</th>
@@ -53,7 +53,7 @@ if(sizeOf($coming_events) == 0) : ?>
             <tr>
               <td>
                 <form action="" method="post">
-                  <button type="submit" class="btn btn-danger btn-small" title="Entfernen" value="<?=$event->id?>" name="fsinf_remove_event"><i class="icon-trash"></i></button>
+                  <button type="submit" class="button-secondary" title="Entfernen" value="<?=$event->id?>" name="fsinf_remove_event"><i class="dashicons dashicons-no"></i></button>
                 </form>
               </td>
               <td><?= $event->title ?></td>
@@ -74,7 +74,7 @@ if(sizeOf($coming_events) == 0) : ?>
       </div>
       <div class="span12">
         <h3>Vergangene 5 Events</h3>
-        <table class="table table-hover">
+        <table class="widefat">
           <thead>
             <tr>
             <th>Titel</th>
