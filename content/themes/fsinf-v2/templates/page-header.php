@@ -1,5 +1,9 @@
-<!-- <div class="page-header">
+<?php
+$title = roots_title();
+if ($title) : ?>
+<div class="page-header">
   <h1>
-    <?php echo roots_title(); ?>
+    <?php echo $title; ?>
   </h1>
-</div> -->
+</div>
+<? endif; ?>
