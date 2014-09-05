@@ -6,60 +6,61 @@ Description: Redirect Pages, Posts or Custom Post Types to another location quic
 Author: Don Fischer
 Author URI: http://www.fischercreativemedia.com/
 Donate link: http://www.fischercreativemedia.com/donations/
-Version: 5.0.5
+Version: 5.0.6
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Version info:
-See change log in readme.txt file.
-Version 3.2.4 to 4.0.1 are testing versions only
-
-    Copyright (C) 2009-2014 Donald J. Fischer
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+ * Copyright (C) 2009-2014 Donald J. Fischer <dfischer [at] fischercreativemedia [dot] com>
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the [GNU General Public License](http://wordpress.org/about/gpl/)
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * on an "AS IS", but WITHOUT ANY WARRANTY; without even the implied
+ * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see [GNU General Public Licenses](http://www.gnu.org/licenses/),
+ * or write to the Free Software Foundation, Inc., 51 Franklin Street,
+ * Fifth Floor, Boston, MA 02110-1301, USA.
+ 
 ==========
-//you can use the following action hooks with this plugin:
-// *** Quick Rediects function: use to take over redirect
-// add_action('qppr_redirect','some_callback_function',10,2);
-//		arg 1. is Redirect URL
-//		arg 2. is Redirect Type
-// *******************************
-// *** Page/Post Redirects function: use to take over redirect
-// add_action('qppr_do_redirect','some_callback_function2',10,2);
-//		arg 1. is Redirect URL
-//		arg 2. is Redirect Type
-// *******************************
-// *** Meta Redirect Action: Used for Meta Redirect Page Headers (so you can add meta tag)
-//add_action('ppr_meta_head_hook','some_callback',10,3);
-//      arg 1. URL site
-//		arg 2. Meta Redirect Time in Seconds
-//		arg 3. Meta Message to display
-// Example:
-/***
+You can use the following action hooks with this plugin:
+
+*** Quick Rediects function: use to take over redirect
+add_action('qppr_redirect','some_callback_function',10,2);
+		arg 1. is Redirect URL
+		arg 2. is Redirect Type
+*******************************
+
+*** Page/Post Redirects function: use to take over redirect
+add_action('qppr_do_redirect','some_callback_function2',10,2);
+		arg 1. is Redirect URL
+		arg 2. is Redirect Type
+*******************************
+
+*** Meta Redirect Action: Used for Meta Redirect Page Headers (so you can add meta tag)
+add_action('ppr_meta_head_hook','some_callback',10,3);
+       arg 1. URL site
+		arg 2. Meta Redirect Time in Seconds
+		arg 3. Meta Message to display
+Example:
 	add_action('ppr_meta_head_hook','override_ppr_metahead',10,3);
 	function override_ppr_metahead($refresh_url='',$refresh_secs=0,$messages=''){
         echo '<meta http-equiv="refresh" content="'.$refresh_secs.'; URL='.$refresh_url.'" />'."\n";
         echo '<div id="ppr_custom_message">'. $messages.'</div>'."\n";
         return;
 	}
-**/
-// *******************************
-// *** Meta Redirect Filter: Used for Meta Redirect Page Headers (so you can add meta and message, etc.)
-//add_filter('ppr_meta_head_hook_filter','some_callback2',10,2);
-//		arg 1. Meta Tag (fully generated)
-//		arg 2. Page HTML Message (wrapped in a <div> tag)
-// Example:
-/*
+*******************************
+
+*** Meta Redirect Filter: Used for Meta Redirect Page Headers (so you can add meta and message, etc.)
+add_filter('ppr_meta_head_hook_filter','some_callback2',10,2);
+		arg 1. Meta Tag (fully generated)
+		arg 2. Page HTML Message (wrapped in a <div> tag)
+Example:
 	add_filter('ppr_meta_head_hook_filter','override_ppr_metahead_new');
 	function override_ppr_metahead_new($meta_tag='',$meta_message=''){
         $meta = $meta_tag;
@@ -69,15 +70,14 @@ Version 3.2.4 to 4.0.1 are testing versions only
       	add_filter('get_title',$function2,100,1);
         return $meta;
 	}
-/*
-// ********************************/
-global $newqppr;
+*******************************
+*/
+global $newqppr, $redirect_plugin;
+start_ppr_class();
 if (!function_exists('esc_attr')) { // For WordPress < 2.8 function compatibility
 	function esc_attr($attr){return attribute_escape( $attr );}
 	function esc_url($url){return clean_url( $url );}
 }
-$newqppr = new quick_page_post_reds();
-
 	
 //=======================================
 // Main Redirect Class.
@@ -114,7 +114,7 @@ class quick_page_post_reds {
 	public $pprptypes_ok;
 	
 	function __construct() {
-		$this->ppr_curr_version 		= '5.0.5';
+		$this->ppr_curr_version 		= '5.0.6';
 		$this->ppr_nofollow 			= array();
 		$this->ppr_newindow 			= array();
 		$this->ppr_url 					= array();
@@ -166,9 +166,16 @@ class quick_page_post_reds {
 			add_filter( 'post_type_link', array( $this, 'ppr_filter_page_links' ), 20, 2 );
 			add_filter( 'get_permalink', array( $this, 'ppr_filter_links' ), 20, 2 );
 		}
-		if( isset( $_POST['submit_301'] ) ) {$this->quickppr_redirects = $this->save_redirects( $_POST['quickppr_redirects'] /* sanatized individually */ );$this->updatemsg ='Quick Redirects Updated.';} //if submitted, process the data
+		add_action('admin_init', array($this,'save_quick_redirects_fields'));
 	}
-	
+	function save_quick_redirects_fields(){
+		if( isset( $_POST['submit_301'] ) ) {
+			if(check_admin_referer( 'add_qppr_redirects' )){
+				$this->quickppr_redirects = $this->save_redirects( $_POST['quickppr_redirects'] );
+				$this->updatemsg ='Quick Redirects Updated.';
+			}
+		} //if submitted and verified, process the data
+	}
 	function ppr_add_menu(){
 		add_menu_page( 'Redirect Options', 'Redirect Options', 'administrator', 'redirect-options', array($this,'ppr_settings_page'),plugins_url( 'settings-16-icon.png' , __FILE__));
 		add_submenu_page( 'redirect-options', 'Quick Redirects', 'Quick Redirects', 'manage_options', 'redirect-updates', array($this,'ppr_options_page') );
@@ -178,8 +185,8 @@ class quick_page_post_reds {
 	}
 	function qppr_admin_scripts($hook){
 		if(in_array($hook, array('edit.php','post.php'))){
-			wp_enqueue_script( 'qppr_admin_meta_script', plugins_url('/qppr_admin_script.js', __FILE__ ) , array('jquery'),'5.0.5');
-			wp_enqueue_style( 'qppr_admin_meta_style', plugins_url('/qppr_admin_style.css', __FILE__ ) , null ,'5.0.5' );
+			wp_enqueue_script( 'qppr_admin_meta_script', plugins_url('/qppr_admin_script.js', __FILE__ ) , array('jquery'),'5.0.6');
+			wp_enqueue_style( 'qppr_admin_meta_style', plugins_url('/qppr_admin_style.css', __FILE__ ) , null ,'5.0.6' );
 		}
 		return;
 	}	
@@ -529,7 +536,7 @@ class quick_page_post_reds {
 	        	<td><label><span style="color:#FF0000;font-weight:bold;font-size:100%;margin-left:0px;">Hide</span> meta box for following Post Types:</label><?php echo $ptypeHTML;?></td>
 	        </tr>
 	        <!--tr valign="top">
-	        	<td><label>Use with jQuery? <i><font size="2" color="#FF0000">(unavailable at this time)</font></i></label> <!--input type="checkbox" name="ppr_use-jquery" value="1"<?php if(get_option('ppr_use-jquery')=='1'){echo ' checked="checked" ';} ?>/--> <input type="checkbox" name="ppr_use-jquery" value="0" disabled /><span>disabled in current version<!--Increases effectiveness of plugin. If you have a jQuery conflict, try turning this off.--></span></td>
+	        	<td><label>Use with jQuery? <i><font size="2" color="#FF0000">(unavailable at this time)</font></i></label> <input type="checkbox" name="ppr_use-jquery" value="1"<?php if(get_option('ppr_use-jquery')=='1'){echo ' checked="checked" ';} ?>/> <input type="checkbox" name="ppr_use-jquery" value="0" disabled /><span>disabled in current version<!--Increases effectiveness of plugin. If you have a jQuery conflict, try turning this off.></span></td>
 	        </tr-->
 	        <tr valign="top">
 	        	<td><label>Meta Refresh Time (in seconds):</label> <input type="text" size="5" name="ppr_meta-seconds" value="<?php echo get_option('ppr_meta-seconds');?>" /> <span>Only needed for Meta Refresh. 0=default (instant)</span></td>
@@ -623,6 +630,7 @@ class quick_page_post_reds {
 			
 		</ol>
 		<form method="post" action="admin.php?page=redirect-updates">
+       <?php wp_nonce_field( 'add_qppr_redirects' ); ?>
 		<table>
 			<tr>
 				<th align="left">Request</th>
@@ -959,7 +967,6 @@ class quick_page_post_reds {
 				exit;
 			} else {
 				$config_file = file_get_contents( $_FILES['qppr_file_add']['tmp_name'] );
-				//------------
 				if ( strpos($config_file,'|') === false ) {
 					wp_die('This does not look like the file is in the correct format - it is possibly damaged or corrupt.<br/>be sure the redirects are 1 per line and the redirect and destination are seperated by a PIPE (|).<br/>Example:<br/><br/><code>redirect|destination</code>', 'ERROR - Not a valid File',array('response'=>'200','back_link'=>'1'));
 					exit;
@@ -1004,7 +1011,6 @@ class quick_page_post_reds {
 						exit;
 					endif;
 				}
-				//-------------
 			}
 		}		return;
 	}
@@ -1097,11 +1103,10 @@ class quick_page_post_reds {
 		// The actual fields for data entry
 		$pprredirecttype = get_post_meta($post->ID, '_pprredirect_type', true) !='' ? get_post_meta($post->ID, '_pprredirect_type', true) : "";
 		$pprredirecturl =  get_post_meta($post->ID, '_pprredirect_url', true)!='' ? get_post_meta($post->ID, '_pprredirect_url', true) : "";
-		//echo $pprredirecttype.'|'.$pprredirecturl;
 		echo '<label for="pprredirect_active" style="padding:2px 0;"><input type="checkbox" name="pprredirect_active" value="1" '. checked('1',get_post_meta($post->ID,'_pprredirect_active',true),0).' />&nbsp;Make Redirect <b>Active</b>.<span class="qppr_meta_help_wrap"><span class="qppr_meta_help_icon">?</span><span class="qppr_meta_help">Check to turn on or redirect will not work.</span></span></label><br />';
 		echo '<label for="pprredirect_newwindow" style="padding:2px 0;"><input type="checkbox" name="pprredirect_newwindow" id="pprredirect_newwindow" value="_blank" '. checked('_blank',get_post_meta($post->ID,'_pprredirect_newwindow',true),0).'>&nbsp;Open redirect link in a <b>new window.</b><span class="qppr_meta_help_wrap"><span class="qppr_meta_help_icon">?</span><span class="qppr_meta_help">May not work in all cases.</span></span></label><br />';
 		echo '<label for="pprredirect_relnofollow" style="padding:2px 0;"><input type="checkbox" name="pprredirect_relnofollow" id="pprredirect_relnofollow" value="1" '. checked('1',get_post_meta($post->ID,'_pprredirect_relnofollow',true),0).'>&nbsp;Add <b>rel="nofollow"</b> to redirect link.<span class="qppr_meta_help_wrap"><span class="qppr_meta_help_icon">?</span><span class="qppr_meta_help">May not work in all cases.</span></span></label><br />';
-		echo '<label for="pprredirect_rewritelink" style="padding:2px 0;"><input type="checkbox" name="pprredirect_rewritelink" id="pprredirect_rewritelink" value="1" '. checked('1',get_post_meta($post->ID,'_pprredirect_rewritelink',true),0).'>&nbsp;<b>Show</b> the Redirect URL instead of original URL. <span class="qppr_meta_help_wrap"><span class="qppr_meta_help_icon">?</span><span class="qppr_meta_help">May not always work and will only show the link - <strong><em>NOT in the Address bar.</em></strong></span></span></label><br /><br />';
+		echo '<label for="pprredirect_rewritelink" style="padding:2px 0;"><input type="checkbox" name="pprredirect_rewritelink" id="pprredirect_rewritelink" value="1" '. checked('1',get_post_meta($post->ID,'_pprredirect_rewritelink',true),0).'>&nbsp;<b>Show</b> the Redirect URL instead of original URL. <span class="qppr_meta_help_wrap"><span class="qppr_meta_help_icon">?</span><span class="qppr_meta_help">May not always work and will only show the link - <strong><em>but NOT in the Address bar, just the link itself.</em></strong></span></span></label><br /><br />';
 		//echo '<label for="pprredirect_casesensitive" style="padding:2px 0;"><input type="checkbox" name="pprredirect_casesensitive" id="pprredirect_casesensitive" value="1" '. checked('1',get_post_meta($post->ID,'_pprredirect_casesensitive',true),0).'>&nbsp;Make the Redirect Case Insensitive.</label><br /><br />';
 		echo '<label for="pprredirect_url"><b>Redirect URL:</b></label><br />';
 		echo '<input type="text" style="width:75%;margin-top:2px;margin-bottom:2px;" name="pprredirect_url" value="'.$pprredirecturl.'" /><span class="qppr_meta_help_wrap"><span class="qppr_meta_help_icon">?</span><span class="qppr_meta_help"><br />(i.e., <strong>http://example.com</strong> or <strong>/somepage/</strong> or <strong>p=15</strong> or <strong>155</strong>. Use <b>FULL URL</b> <i>including</i> <strong>http://</strong> for all external <i>and</i> meta redirects.)</span></span><br /><br />';
@@ -1145,20 +1150,33 @@ class quick_page_post_reds {
 		[query]
 		[fragment]
 		*/
-		if(substr($url,0,2) == 'p='){ // page or post id
+		$strip_protocol = 0;
+		$tostrip = '';
+		//if($url == '' || $url == 'http://' || $url == 'https://' ){ return $url;}
+		
+		if(substr($url,0,2) == 'p=' || substr($url,0,8) == 'page_id='){ // page or post id
 			$url = network_site_url().'/?'.$url;
 		}elseif(is_numeric($url)){ // page or post id
 			$url = network_site_url().'/?'.$url;
-		}elseif($url[0] == "/" ){ // root
+		}elseif($url == "/" ){ // root
 			$url = network_site_url().'/';
-		}elseif(strpos($url,"://") === false  ){ // no protocol so add it
-			$url = "http://".$url;
+		}elseif(substr($url,0,1) == '/' ){ // relative to root
+			$url =  network_site_url().$url;
+			$strip_protocol = 1;
+			$tostrip = network_site_url(); 
+		}elseif(substr($url,0,7) != 'http://' && substr($url,0,8) != 'https://' ){ // no protocol so add it
+			//$url = "http://".$url;
+			//desided not to add it automatically.
 		}
-		$info = parse_url($url);
-		$info['url'] = $url;
-		//echo $info['url'];
+		$info = @parse_url($url);
+		if($strip_protocol == 1 && $tostrip != '' ){
+			$info['url'] = str_replace($tostrip, '', $url);
+		}else{
+			$info['url'] = $url;
+		}
 		return $info;
 	}
+	
 	function isOne_none($val=''){ //true (1) or false =''
 		if($val == '_blank'){
 			return $val;
@@ -1192,8 +1210,9 @@ class quick_page_post_reds {
 			$my_meta_data['_pprredirect_url']    		= isset($_REQUEST['pprredirect_url']) 			? sanitize_meta( '_pprredirect_url', ( $_REQUEST['pprredirect_url'] ), 'post' )			: ''; 
 
 			$info = $this->appip_parseURI($my_meta_data['_pprredirect_url']);
-			
-			$my_meta_data['_pprredirect_url'] = esc_url_raw($info['url']);
+			//$my_meta_data['_pprredirect_url'] = esc_url_raw($info['url']);
+			$my_meta_data['_pprredirect_url'] = $info['url'];
+
 			if($my_meta_data['_pprredirect_url'] == 'http://' || $my_meta_data['_pprredirect_url'] == 'https://' || $my_meta_data['_pprredirect_url'] == ''){
 				$my_meta_data['_pprredirect_url'] 		= ''; //reset to nothing
 				$my_meta_data['_pprredirect_type'] 		= NULL; //clear Type if no URL is set.
@@ -1447,6 +1466,7 @@ class quick_page_post_reds {
 // END Main Redirect Class.
 //=======================================
 function start_ppr_class(){
-	$redirect_plugin = new quick_page_post_reds(); // call our class
+	global $newqppr, $redirect_plugin;
+	$redirect_plugin = $newqppr = new quick_page_post_reds(); // call our class
 }
 ?>

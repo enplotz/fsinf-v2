@@ -3,13 +3,13 @@ Contributors: Don Fischer
 Donate link: http://www.fischercreativemedia.com/donations/
 Tags: redirect, 301, 302, meta, post, plugin, page, forward, re-direct, nofollow, menu links, posts, pages, admin, 404, custom post types, nav menu, import, export, restore
 Requires at least: 3.1
-Tested up to: 3.8.2
+Tested up to: 3.9
 Stable tag: trunk
 
 Redirect Pages/Posts to another page/post or external URL. Has edit box as well as global options. Specify the redirect Location and type. For PHP5+
 
 == Description ==
-Version 5.0.5.
+Version 5.0.6.
 This plugin adds adds an option box to the edit section where you can specify the redirect location and type of redirect that you want, temporary, permanent, or meta. See below for additional features added. 
 
 = Features: = 
@@ -129,6 +129,10 @@ NO it isn't! Check the plugin FAQs/Help page for a more up to date list of Frequ
 5. Summary of redirects plugin page.
 
 == Changelog ==
+= 5.0.6 =
+* Fix to some users getting Warning messages for parse_url function.
+* Added nonce field checking for Quick Redirects form to help eliminate the possibility of form takeover on submission of quick redirect saves.
+
 = 5.0.5 =
 * Fix to security flaw for logged in admin users.
 * Fix to extra spaces that broke some callback functions in the redirect class in 5.0.4.
@@ -251,5 +255,6 @@ NO it isn't! Check the plugin FAQs/Help page for a more up to date list of Frequ
 * Initial Plugin creation (7/1/2009)
 
 == Upgrade Notice ==
-= 5.0.5 =
-Fix to security flaw for logged in admin users and extra spaces that broke some callback functions in the class in 5.0.4.
+= 5.0.6 =
+* Fix Warning Message from parse_url function for some users. 
+* Added Nonce to form to prevent possible maliscious form takeover on saving Quick Redirects. 
