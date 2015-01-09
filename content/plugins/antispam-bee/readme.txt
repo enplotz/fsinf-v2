@@ -1,20 +1,22 @@
 === Antispam Bee ===
 Contributors: sergej.mueller
-Tags: antispam, spam, comments, trackback
-Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5RDDW9FEHGLG6
+Tags: comment, spam, antispam, comments, trackback, protection, prevention
+Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZAQUT9RLPW8QN
 Requires at least: 3.8
-Tested up to: 3.8
+Tested up to: 4.1
 Stable tag: trunk
 License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 
 
-Say Goodbye zu Spam in deinem Blog. Kostenlos, werbefrei und datenschutzkonform. Für Kommentare und Trackbacks.
+„... another popular solution to fight spam is Antispam Bee“ – Matt Mullenweg, Q&A WordCamp Europe 2014
 
 
 
 == Description ==
+
+Say Goodbye zu Spam in deinem Blog. Kostenlos, werbefrei und datenschutzkonform. Für Kommentare und Trackbacks.
 
 Blog-Spam bekämpfen ist die Stärke von *Antispam Bee*. Seit Jahren wird das Plugin darauf trainiert, Spam-Kommentare zuverlässig zu erkennen (auf Wunsch auch sofort zu beseitigen). Dabei greift *Antispam Bee* auf unterschiedliche Techniken zu, die sich zur Identifizierung von Spam-Nachrichten bewährt haben.
 
@@ -58,7 +60,7 @@ Die meisten Auswahlmöglichkeiten innerhalb der Optionsseite sind konfigurierbar
 
 
 = Datenschutz =
-In Blogs innerhalb der EU-Länder darf die Option *"Öffentliche Spamdatenbank berücksichtigen"* nicht aktiviert werden, da das Antispam-Plugin ungekürzte IP-Adressen der Kommentatoren dafür verwendet, diese in der öffentlichen Spammer-Datenbank nachzuschlagen und als Spam zu identifizieren. Technisch ist die Verschlüsselung der IP nicht möglich, da Spammer-Datenbanken mit vollständigen, unverschlüsselten IP-Adressen arbeiten. [Weitere Details](http://playground.ebiene.de/antispam-bee-wordpress-plugin/#dnsbl_check)
+In Blogs innerhalb der EU-Länder sollte die Option *"Öffentliche Spamdatenbank berücksichtigen"* nicht aktiviert werden, da das Antispam-Plugin dann ungekürzte IP-Adressen der Kommentatoren dafür verwendet, diese in einer öffentlichen Spammer-Datenbank nachzuschlagen, um als Spam zu identifizieren. Technisch ist die Verschlüsselung der IP nicht möglich, da Spammer-Datenbanken mit vollständigen, unverschlüsselten IP-Adressen arbeiten. [Weitere Details](http://playground.ebiene.de/antispam-bee-wordpress-plugin/#dnsbl_check)
 
 
 = Schlusswort =
@@ -67,12 +69,7 @@ Anmeldefrei und ohne lästige Captchas.
 
 
 = Support =
-Freundlich formulierte Fragen rund um das Plugin werden per E-Mail beantwortet.
-
-
-= Systemanforderungen =
-* PHP 5.2.4
-* WordPress 3.8
+Fragen rund ums Plugin werden gern per E-Mail beantwortet. Beachtet auch die [Guidelines](https://plus.google.com/+SergejMüller/posts/Ex2vYGN8G2L).
 
 
 = Inkompatibilität =
@@ -82,12 +79,14 @@ Freundlich formulierte Fragen rund um das Plugin werden per E-Mail beantwortet.
 
 
 = Unterstützung =
-* Per [Flattr](https://flattr.com/t/1323822)
-* Per [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=5RDDW9FEHGLG6)
+* [Flattr](https://flattr.com/t/1323822)
+* [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZAQUT9RLPW8QN)
+* [Wishlist](https://www.amazon.de/registry/wishlist/2U5I7F9649LOJ/)
 
 
-= Handbuch =
+= Lesenswertes =
 * [Antispam Bee: Antispam für WordPress](http://playground.ebiene.de/antispam-bee-wordpress-plugin/)
+* [Guide: Spam-Bekämpfung in WordPress](http://cup.wpcoder.de/wordpress-antispam-guide/)
 
 
 = Website =
@@ -104,6 +103,55 @@ Freundlich formulierte Fragen rund um das Plugin werden per E-Mail beantwortet.
 
 
 == Changelog ==
+
+= 2.6.4 =
+
+* **English**
+    * Consideration of the comment time (Spam if a comment was written in less than 5 seconds)
+    * *Release time investment (Development & QA): 6,25 h*
+
+* **Deutsch**
+    * Berücksichtigung der Kommentarzeit (Spam, wenn ein Kommentar in unter 5 Sekunden verfasst)
+    * [Mehr Informationen auf Google+](https://plus.google.com/+SergejMüller/posts/73EbP6F1BgC)
+    * *Release-Zeitaufwand (Development & QA): 6,25 Stunden*
+
+
+= 2.6.3 =
+
+* **English**
+    * Sorting for the Antispam Bee column in the spam comments overview
+    * Code refactoring around the use of REQUEST_URI
+    * *Release time investment (Development & QA): 2,75 h*
+
+* **Deutsch**
+    * Sortierung für die Antispam Bee Spalte in der Spam-Übersicht
+    * Code-Refactoring rund um die Nutzung von REQUEST_URI
+    * *Release-Zeitaufwand (Development & QA): 2,75 Stunden*
+
+
+= 2.6.2 =
+
+* **English**
+    * Improving detection of fake IPs
+    * *Release time investment (Development & QA): 11 h*
+
+* **Deutsch**
+    * Überarbeitung der Erkennung von gefälschten IPs
+    * *Release-Zeitaufwand (Development & QA): 11 Stunden*
+
+
+= 2.6.1 =
+
+* **English**
+    * Code refactoring of options management
+    * Support for `HTTP_FORWARDED_FOR` header
+    * *Release time investment (Development & QA): 8,5 h*
+
+* **Deutsch**
+    * Überarbeitung der Optionen-Verwaltung
+    * Berücksichtigung der Header `HTTP_FORWARDED_FOR`
+    * *Release-Zeitaufwand (Development & QA): 8,5 Stunden*
+
 
 = 2.6.0 =
 * DE: Optimierungen für WordPress 3.8
@@ -287,6 +335,18 @@ Freundlich formulierte Fragen rund um das Plugin werden per E-Mail beantwortet.
 = 0.3 =
 * Trackback and Pingback spam protection
 
+
+
+== Installation ==
+
+= Requirements =
+* WordPress 3.8 or greater
+* PHP 5.2.4 or greater
+
+= Installation =
+* WordPress Dashboard > Plugins > Add New
+* Search for *Antispam Bee* > Install
+* Set plugin settings or leave the default values
 
 
 == Screenshots ==
