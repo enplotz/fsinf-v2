@@ -4,8 +4,8 @@ Plugin Name: Extra User Details
 Plugin URI: http://vadimk.com/wordpress-plugins/extra-user-details/
 Description: Allows you to add additional fields to the user profile like Facebook, Twitter etc.
 Author: Vadym Khukhrianskyi
-Version: 0.4.1
-Text Domain: extra_user_details
+Version: 0.4.2
+Text Domain: extra-user-details
 Author URI: http://vadimk.com/
 License: GPLv2 or later
 */
@@ -15,7 +15,7 @@ add_action( 'plugins_loaded', 'eud_localization_init' );
 function eud_localization_init() {
     $path = dirname(plugin_basename(__FILE__)) . '/lang/';
 
-    load_plugin_textdomain( 'extra_user_details', false, $path );
+    load_plugin_textdomain( 'extra-user-details', false, $path );
 }
 
 if ( ! get_option( 'eud_fields' ) ) add_option( 'eud_fields', '' );
@@ -30,7 +30,7 @@ add_action( 'init', 'eud_scripts' );
 //add_action( 'admin_init', 'add_eud_contextual_help' );
 
 function eud_plugin_menu() {
-    $eud_page = add_submenu_page( 'users.php', 'Extra User Details Options', 'Extra User Details', 'edit_users', 'extra_user_details', 'eud_plugin_options' );
+    $eud_page = add_submenu_page( 'users.php', 'Extra User Details Options', 'Extra User Details', 'edit_users', 'extra-user-details', 'eud_plugin_options' );
 
     add_action( 'load-' . $eud_page, 'add_eud_contextual_help' );
 }
@@ -48,13 +48,13 @@ function eud_scripts(){
 function add_eud_contextual_help() {
   $help = '
     <div id="eud-fields-help">
-        <p><strong>' . __( "How to use this plugin:", 'extra_user_details' ) . '</strong></p>
-        <p>' . __( "<strong>Meta key</strong>: This is the key to use in templates with <em>get_user_meta('meta_key')</em>. No special characters please, only lowercase letters, '_' and '-' can be used. <strong>NOTE:</strong> If you change this slug later, this will NOT update meta key for existing meta values in DB!", 'extra_user_details'  ) . '</p>
-        <p>' . __( "<strong>Field label</strong>: This is the label your users will see on their profile.", 'extra_user_details' ) . '</p>
-        <p>' . __( "<strong>Help text</strong>: Description text is showing near the appropriate custom field in user profile.", 'extra_user_details' ) . '<br />' . __( 'The default help text is:', 'extra_user_details') . ' <em>' . __( 'Please fill in this additional profile information field.', 'extra_user_details' ) . '</em></p>
-        <p>' . __( "<strong>Access level</strong>: By default extra fields are displayed for all user levels (subscribers, contributors, editors etc.). If you want to restrict some specific field usage, select appropriate users to have some specific extra field.", 'extra_user_details' ) . '</p>
-        <p>' . __( "<strong>Field order</strong>: Fields are normally displayed - both here as well as on user profiles - in the order in which they are added. If you would like to change the order in which these extra fields are displayed: simply move the field above or below another one and update settings.", 'extra_user_details' ) . '</p>
-        <p>' . __( "<strong>WARNING</strong>: Please remember, you're using this plugin for your own risk and should know what you're doing, because wp_usermeta table contains other meta_keys for another purpose which can be affected (if you set the same slug for your extra field). If you will add two identical fields - the user won't be able to update those fields in profile.", 'extra_user_details' ) . '</p>
+        <p><strong>' . __( "How to use this plugin:", 'extra-user-details' ) . '</strong></p>
+        <p>' . __( "<strong>Meta key</strong>: This is the key to use in templates with <em>get_user_meta('meta_key')</em>. No special characters please, only lowercase letters, '_' and '-' can be used. <strong>NOTE:</strong> If you change this slug later, this will NOT update meta key for existing meta values in DB!", 'extra-user-details'  ) . '</p>
+        <p>' . __( "<strong>Field label</strong>: This is the label your users will see on their profile.", 'extra-user-details' ) . '</p>
+        <p>' . __( "<strong>Help text</strong>: Description text is showing near the appropriate custom field in user profile.", 'extra-user-details' ) . '<br />' . __( 'The default help text is:', 'extra-user-details') . ' <em>' . __( 'Please fill in this additional profile information field.', 'extra-user-details' ) . '</em></p>
+        <p>' . __( "<strong>Access level</strong>: By default extra fields are displayed for all user levels (subscribers, contributors, editors etc.). If you want to restrict some specific field usage, select appropriate users to have some specific extra field.", 'extra-user-details' ) . '</p>
+        <p>' . __( "<strong>Field order</strong>: Fields are normally displayed - both here as well as on user profiles - in the order in which they are added. If you would like to change the order in which these extra fields are displayed: simply move the field above or below another one and update settings.", 'extra-user-details' ) . '</p>
+        <p>' . __( "<strong>WARNING</strong>: Please remember, you're using this plugin for your own risk and should know what you're doing, because wp_usermeta table contains other meta_keys for another purpose which can be affected (if you set the same slug for your extra field). If you will add two identical fields - the user won't be able to update those fields in profile.", 'extra-user-details' ) . '</p>
         <hr />
         <p><strong style="color:red">Need help?</strong>: Need extra feature/new plugin, your WordPress website support? Contact plugin author <a href="http://vadimk.com/contact/">here</a> or on <a href="http://twitter.com/vaddim">twitter</a>.</p>
         <hr />
@@ -69,7 +69,7 @@ function add_eud_contextual_help() {
     $screen = get_current_screen();
     $screen->add_help_tab(array(
         'title'   => 'Help',
-        'id'      => 'users_page_extra_user_details',
+        'id'      => 'users_page_extra-user-details',
         'content' => $help,
     ));
 }
@@ -85,12 +85,13 @@ function eud_extract_ExtraFields() {
             $output = '';
 
             foreach ( $all_fields as $key => $value ) {
-              if ( isset($value[3]) && ! empty($value[3]) ) {
-                if ( ($value[3] == 'disable') || ! current_user_can($value[3]) ) {
-                    continue;
+                if (isset($value[3]) && !empty($value[3])) {
+                    if (($value[3] == 'disable') || !current_user_can($value[3])) {
+                        continue;
+                    }
                 }
-              }
-              $output .= '<tr>
+
+                $output .= '<tr>
                       <th><label for="eud' . esc_attr( $value[1] ) . '">' . esc_attr( $value[0] ) . '</label></th>
                       <td><input name="eud' . esc_attr( $value[1] ) . '" id="eud' . esc_attr( $value[1] ) . '" type="text" value="' . esc_attr( get_user_meta( get_user_id(), $value[1], true ) ) . '" class="regular-text code" />&nbsp;<span class="description">' . ( ( isset( $value[2] ) && $value[2] !== '' ) ? esc_attr( stripslashes( $value[2] ) ) : '' ) . '</span></td>
                     </tr>';
@@ -98,7 +99,7 @@ function eud_extract_ExtraFields() {
         }
 
         if ($output != '') {
-            echo '<h3>' . __( 'Extra User Details', 'extra_user_details' ) . '</h3>
+            echo '<h3>' . __( 'Extra User Details', 'extra-user-details' ) . '</h3>
                 <table class="form-table">';
             echo $output;
             echo '</table>';
@@ -154,11 +155,11 @@ function eud_plugin_options() {
             update_option( 'eud_fields', '' );
         }
 
-        echo '<div class="updated"><p><strong>' . __( 'Extra Fields Options Updated.', 'extra_user_details' ) . '</strong></p></div>';
+        echo '<div class="updated"><p><strong>' . __( 'Extra Fields Options Updated.', 'extra-user-details' ) . '</strong></p></div>';
 
         if ( count( $error_fields ) )
             echo '<div class="error">
-                    <p><strong>' . __( 'However, highlighted fields are not updated because contain errors! Please correct them and update fields again or this fields will be lost.', 'extra_user_details' ) . '</strong></p>
+                    <p><strong>' . __( 'However, highlighted fields are not updated because contain errors! Please correct them and update fields again or this fields will be lost.', 'extra-user-details' ) . '</strong></p>
                 </div>';
 
     }
@@ -168,12 +169,12 @@ function eud_plugin_options() {
     <form action="" method="post">
         <div class="wrap">
             <div class="icon32" id="icon-options-general"></div>
-            <h2>' . __( 'Extra User Details Options', 'extra_user_details' ) . '</h2>';
+            <h2>' . __( 'Extra User Details Options', 'extra-user-details' ) . '</h2>';
 
         echo '
             <form action="" method="post">
 
-                <h3>' . __( 'Currently defined fields', 'extra_user_details' ) . '</h3>';
+                <h3>' . __( 'Currently defined fields', 'extra-user-details' ) . '</h3>';
 
                 if ( isset( $eud_fields ) && !empty( $eud_fields ) ) {
                     $all_fields = $eud_fields;
@@ -202,7 +203,7 @@ function eud_plugin_options() {
 
                             jQuery('.add-field').click(function(){
                                 var randnum = Math.floor((Math.random() * (9999-999+1))+999);
-                                var append = '<div class="field"><table><tbody><tr><th class="num">&nbsp;</th><th class="slug"><?php _e('Meta Key:', 'extra_user_details');?></th><th class="name"><?php _e('Field Name:', 'extra_user_details');?></th><th class="description"><?php _e( 'Description (Help Text):', 'extra_user_details' );?></th><th class="userlevel"><?php _e('Access Level:', 'extra_user_details');?></th><th class="actions"></th></tr><tr><td>' + (jQuery('.sortcontainer div').size() + 1) + '.</td><td><input name="eud_fields['+ randnum +'][1]" type="text" value="" class="regular-text" size=""/></td><td><input name="eud_fields['+ randnum +'][0]" type="text" value="" class="regular-text" size=""/></td><td><input name="eud_fields['+ randnum +'][2]" type="text" value="" class="regular-text" size="80"/></td><td><select name="eud_fields['+ randnum +'][3]" style="width:100px"><option value="install_themes"><?php _e('Admins Only', 'extra_user_details');?></option><option value="edit_others_posts"><?php _e('Admins, Editors', 'extra_user_details');?></option><option value="publish_posts"><?php _e('Admins, Editors, Authors', 'extra_user_details');?></option><option value="edit_posts"><?php _e('Admins, Editors, Authors, Contributors', 'extra_user_details');?></option><option value="read" selected="selected"><?php _e('Everyone', 'extra_user_details');?></option><option value="disable"><?php _e('Disable', 'extra_user_details');?></option></select></td><td><input type="button" value="<?php _e('Delete', 'extra_user_details');?>" class="delete-field button"></td></tr></tbody></table></div>';
+                                var append = '<div class="field"><table><tbody><tr><th class="num">&nbsp;</th><th class="slug"><?php _e('Meta Key:', 'extra-user-details');?></th><th class="name"><?php _e('Field Name:', 'extra-user-details');?></th><th class="description"><?php _e( 'Description (Help Text):', 'extra-user-details' );?></th><th class="userlevel"><?php _e('Access Level:', 'extra-user-details');?></th><th class="actions"></th></tr><tr><td>' + (jQuery('.sortcontainer div').size() + 1) + '.</td><td><input name="eud_fields['+ randnum +'][1]" type="text" value="" class="regular-text" size=""/></td><td><input name="eud_fields['+ randnum +'][0]" type="text" value="" class="regular-text" size=""/></td><td><input name="eud_fields['+ randnum +'][2]" type="text" value="" class="regular-text" size="80"/></td><td><select name="eud_fields['+ randnum +'][3]" style="width:100px"><option value="install_themes"><?php _e('Admins Only', 'extra-user-details');?></option><option value="edit_others_posts"><?php _e('Admins, Editors', 'extra-user-details');?></option><option value="publish_posts"><?php _e('Admins, Editors, Authors', 'extra-user-details');?></option><option value="edit_posts"><?php _e('Admins, Editors, Authors, Contributors', 'extra-user-details');?></option><option value="read" selected="selected"><?php _e('Everyone', 'extra-user-details');?></option><option value="disable"><?php _e('Disable', 'extra-user-details');?></option></select></td><td><input type="button" value="<?php _e('Delete', 'extra-user-details');?>" class="delete-field button"></td></tr></tbody></table></div>';
                                 jQuery('.sortcontainer').append(append);
                             });
 
@@ -288,10 +289,10 @@ function eud_plugin_options() {
                                 <tbody>
                                     <tr>
                                         <th class="num">&nbsp;</th>
-                                        <th class="slug">' . __( 'Meta Key:', 'extra_user_details' ) . '</th>
-                                        <th class="name">' . __( "Field Name:", "extra_user_details" ) . '</th>
-                                        <th class="description">' . __( "Description (Help Text):", "extra_user_details" ) . '</th>
-                                        <th class="userlevel">' . __( "Access Level:", "extra_user_details" ) . '</th>
+                                        <th class="slug">' . __( 'Meta Key:', 'extra-user-details' ) . '</th>
+                                        <th class="name">' . __( "Field Name:", "extra-user-details" ) . '</th>
+                                        <th class="description">' . __( "Description (Help Text):", "extra-user-details" ) . '</th>
+                                        <th class="userlevel">' . __( "Access Level:", "extra-user-details" ) . '</th>
                                         <th class="actions"></th>
                                     </tr>
                                     <tr>
@@ -307,15 +308,15 @@ function eud_plugin_options() {
                                         </td>
                                         <td>
                                             <select name="eud_fields[' . esc_attr( $key ) . '][3]" style="width:100px">
-                                              <option value="install_themes" '.selected( $value[3], 'install_themes', false ).'>'. __('Admins Only', 'extra_user_details') .'</option>
-                                              <option value="edit_others_posts" '.selected( $value[3], 'edit_others_posts', false ).'>'. __('Admins, Editors', 'extra_user_details') .'</option>
-                                              <option value="publish_posts" '.selected( $value[3], 'publish_posts', false ).'>'. __('Admins, Editors, Authors', 'extra_user_details') .'</option>
-                                              <option value="edit_posts" '.selected( $value[3], 'edit_posts', false ).'>'. __('Admins, Editors, Authors, Contributors', 'extra_user_details') .'</option>
-                                              <option value="read" '.selected( $value[3], 'read', false ).'>'. __('Everyone', 'extra_user_details') .'</option>
-                                              <option value="disable" '.selected( $value[3], 'disable', false ).'>'. __('Disable', 'extra_user_details') .'</option>
+                                              <option value="install_themes" '.selected( $value[3], 'install_themes', false ).'>'. __('Admins Only', 'extra-user-details') .'</option>
+                                              <option value="edit_others_posts" '.selected( $value[3], 'edit_others_posts', false ).'>'. __('Admins, Editors', 'extra-user-details') .'</option>
+                                              <option value="publish_posts" '.selected( $value[3], 'publish_posts', false ).'>'. __('Admins, Editors, Authors', 'extra-user-details') .'</option>
+                                              <option value="edit_posts" '.selected( $value[3], 'edit_posts', false ).'>'. __('Admins, Editors, Authors, Contributors', 'extra-user-details') .'</option>
+                                              <option value="read" '.selected( $value[3], 'read', false ).'>'. __('Everyone', 'extra-user-details') .'</option>
+                                              <option value="disable" '.selected( $value[3], 'disable', false ).'>'. __('Disable', 'extra-user-details') .'</option>
                                         </td>
                                         <td>
-                                            <input type="button" value="' . __('Delete', 'extra_user_details') . '" onclick="remove_eud_field();" class="delete-field button">
+                                            <input type="button" value="' . __('Delete', 'extra-user-details') . '" onclick="remove_eud_field();" class="delete-field button">
                                         </td>
                                     </tr>
                                 </tbody>
@@ -333,10 +334,10 @@ function eud_plugin_options() {
                 echo '
                 </div>
 
-                <input type="button" value="' . __( 'Add New Field', 'extra_user_details' ) . '" class="add-field button">
+                <input type="button" value="' . __( 'Add New Field', 'extra-user-details' ) . '" class="add-field button">
 
             <p class="submit">
-            <input type="submit" name="eud_submit" class="button-primary" value="' . __( 'Update Extra Fields', 'extra_user_details' ) . '">
+            <input type="submit" name="eud_submit" class="button-primary" value="' . __( 'Update Extra Fields', 'extra-user-details' ) . '">
         </p>
     </form>';
 }
